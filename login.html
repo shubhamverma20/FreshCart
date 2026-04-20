@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - FreshCart</title>
+    <link rel="stylesheet" href="css/style.css">
+    <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
+    <script nomodule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"></script>
+    <style>
+        .auth-container {
+            min-height: calc(100vh - 100px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.05) 0%, rgba(245, 158, 11, 0.05) 100%);
+        }
+        
+        .auth-card {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            width: 100%;
+            max-width: 450px;
+            padding: 40px;
+            border-radius: 24px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.08);
+            text-align: center;
+        }
+
+        .auth-title {
+            font-size: 28px;
+            margin-bottom: 8px;
+        }
+
+        .auth-subtitle {
+            color: var(--text-secondary);
+            margin-bottom: 30px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 8px;
+            color: var(--text-primary);
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 14px 16px;
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            font-family: 'Inter';
+            font-size: 15px;
+            transition: all 0.3s;
+            background: #F8FAFC;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            background: white;
+            box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.1);
+        }
+
+        .btn-auth {
+            width: 100%;
+            padding: 14px;
+            font-size: 16px;
+            border-radius: 12px;
+            margin-top: 10px;
+        }
+
+        .social-login {
+            margin-top: 30px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .btn-social {
+            background: white;
+            border: 1px solid var(--border-color);
+            padding: 12px;
+            border-radius: 12px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            color: var(--text-primary);
+        }
+
+        .btn-social:hover {
+            background: #f1f5f9;
+        }
+        
+        .divider {
+            display: flex;
+            align-items: center;
+            text-align: center;
+            margin: 20px 0;
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        .divider::before, .divider::after {
+            content: '';
+            flex: 1;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .divider:not(:empty)::before { margin-right: 15px; }
+        .divider:not(:empty)::after { margin-left: 15px; }
+
+    </style>
+</head>
+<body>
+
+    <nav class="navbar">
+        <div class="container nav-container">
+            <a href="index.html" class="logo">
+                <div class="logo-icon"><ion-icon name="basket-outline"></ion-icon></div>
+                FreshCart
+            </a>
+            <div class="nav-actions">
+                <a href="index.html" class="nav-link">Back to Store</a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="main-content">
+        <div class="auth-container">
+            <div class="auth-card fade-in">
+                <h1 class="auth-title">Welcome Back</h1>
+                <p class="auth-subtitle">Log in to track your orders and fast checkout.</p>
+
+                <form action="index.html">
+                    <div class="form-group">
+                        <label class="form-label">Email or Phone Number</label>
+                        <input type="text" class="form-input" placeholder="e.g. 9876543210 or email@domain.com" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Password</label>
+                        <input type="password" class="form-input" placeholder="••••••••" required>
+                    </div>
+                    <button type="submit" class="btn-primary btn-auth">Log In Now</button>
+                </form>
+
+                <div class="divider">OR CONTINUE WITH</div>
+
+                <div class="social-login">
+                    <button class="btn-social">
+                        <ion-icon name="logo-google" style="color: #EA4335;"></ion-icon> Google
+                    </button>
+                    <button class="btn-social">
+                        <ion-icon name="phone-portrait-outline" style="color: var(--primary-color);"></ion-icon> OTP
+                    </button>
+                </div>
+
+                <p style="margin-top: 30px; font-size: 14px; color: var(--text-secondary);">
+                    Don't have an account? <a href="#" style="color: var(--primary-color); font-weight: 600;">Sign up</a>
+                </p>
+            </div>
+        </div>
+    </main>
+
+</body>
+</html>

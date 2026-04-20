@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Tracking - FreshCart</title>
+    <link rel="stylesheet" href="css/style.css">
+    <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
+    <script nomodule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"></script>
+    <style>
+        .tracking-container {
+            max-width: 1000px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1fr 350px;
+            gap: 30px;
+            margin-top: 20px;
+        }
+
+        .map-card {
+            background: var(--surface-color);
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow-sm);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .map-mockup {
+            height: 450px;
+            background: #E2E8F0 linear-gradient(135deg, #e2e8f0 25%, #cbd5e1 25%, #cbd5e1 50%, #e2e8f0 50%, #e2e8f0 75%, #cbd5e1 75%, #cbd5e1 100%);
+            background-size: 40px 40px;
+            position: relative;
+        }
+
+        .map-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255, 255, 255, 0.4);
+            backdrop-filter: blur(2px);
+        }
+
+        /* Animated Delivery Marker */
+        .delivery-marker {
+            position: absolute;
+            top: 40%;
+            left: 30%;
+            z-index: 10;
+            animation: moveMarker 15s linear infinite alternate;
+        }
+
+        .delivery-icon {
+            background: var(--primary-color);
+            color: white;
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            box-shadow: 0 4px 10px rgba(16, 185, 129, 0.4);
+        }
+
+        .pulse {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 100%;
+            height: 100%;
+            background: var(--primary-color);
+            border-radius: 50%;
+            z-index: -1;
+            animation: radar 2s ease-out infinite;
+        }
+
+        @keyframes radar {
+            0% {
+                transform: translate(-50%, -50%) scale(1);
+                opacity: 0.6;
+            }
+
+            100% {
+                transform: translate(-50%, -50%) scale(2.5);
+                opacity: 0;
+            }
+        }
+
+        @keyframes moveMarker {
+            0% {
+                top: 40%;
+                left: 30%;
+            }
+
+            50% {
+                top: 60%;
+                left: 50%;
+            }
+
+            100% {
+                top: 40%;
+                left: 70%;
+            }
+        }
+
+        .home-marker {
+            position: absolute;
+            top: 40%;
+            left: 70%;
+            z-index: 9;
+        }
+
+        .home-icon {
+            background: #3B82F6;
+            color: white;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            box-shadow: 0 4px 10px rgba(59, 130, 246, 0.4);
+        }
+
+        .info-card {
+            background: var(--surface-color);
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow-sm);
+            padding: 24px;
+        }
+
+        .eta-box {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-hover) 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+            margin-bottom: 24px;
+        }
+
+        .eta-time {
+            font-size: 32px;
+            font-family: 'Outfit';
+            font-weight: 700;
+            margin: 5px 0;
+        }
+
+        .driver-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid var(--border-color);
+            margin-bottom: 20px;
+        }
+
+        .driver-avatar {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid var(--primary-color);
+            padding: 2px;
+        }
+
+        .btn-call {
+            background: #E0F2FE;
+            color: #0284C7;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            border: none;
+            cursor: pointer;
+            margin-left: auto;
+        }
+
+        .timeline {
+            position: relative;
+            padding-left: 30px;
+        }
+
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 11px;
+            top: 5px;
+            bottom: 5px;
+            width: 2px;
+            background: var(--border-color);
+        }
+
+        .timeline-item {
+            position: relative;
+            margin-bottom: 20px;
+        }
+
+        .timeline-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .timeline-dot {
+            position: absolute;
+            left: -30px;
+            top: 2px;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            background: white;
+            border: 2px solid var(--border-color);
+            color: var(--text-secondary);
+        }
+
+        .timeline-item.completed .timeline-dot {
+            background: var(--primary-color);
+            border-color: var(--primary-color);
+            color: white;
+        }
+
+        .timeline-item.active .timeline-dot {
+            border-color: var(--primary-color);
+            color: var(--primary-color);
+            border-width: 3px;
+        }
+
+        .timeline-title {
+            font-weight: 600;
+            font-size: 15px;
+        }
+
+        .timeline-time {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-top: 2px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <nav class="navbar">
+        <div class="container nav-container">
+            <a href="index.html" class="logo">
+                <div class="logo-icon"><ion-icon name="basket-outline"></ion-icon></div>
+                FreshCart
+            </a>
+            <div class="nav-actions">
+                <a href="index.html" class="nav-link">Return Home</a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="main-content container">
+        <h2 style="margin-bottom: 20px;">Order Tracking <span
+                style="color: var(--text-secondary); font-size: 16px; font-weight: normal;">#ORD-9824X</span></h2>
+
+        <div class="tracking-container fade-in">
+            <!-- Map Side -->
+            <div class="map-card">
+                <div class="map-mockup">
+                    <div class="map-overlay"></div>
+
+                    <div class="home-marker">
+                        <div class="home-icon"><ion-icon name="home"></ion-icon></div>
+                        <div
+                            style="background: white; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; margin-top: 5px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                            Your Location</div>
+                    </div>
+
+                    <div class="delivery-marker">
+                        <div class="pulse"></div>
+                        <div class="delivery-icon"><ion-icon name="bicycle"></ion-icon></div>
+                    </div>
+                </div>
+                <div style="padding: 20px;">
+                    <div style="display: flex; align-items: center; gap: 10px; color: var(--text-secondary);">
+                        <ion-icon name="information-circle-outline"
+                            style="font-size: 24px; color: var(--primary-color);"></ion-icon>
+                        <p style="font-size: 14px;">The driver is near <b>Highland Park Avenue</b>. Live location
+                            updates every 3 seconds.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tracking Info Side -->
+            <div>
+                <div class="info-card">
+                    <div class="eta-box">
+                        <div style="font-size: 14px; opacity: 0.9;">Estimated Delivery</div>
+                        <div class="eta-time">12 Mins</div>
+                        <div style="font-size: 14px; opacity: 0.9;">By 10:45 AM</div>
+                    </div>
+
+                    <div class="driver-info">
+                        <div class="driver-avatar" style="display:flex;align-items:center;justify-content:center;background:#10B981;color:white;font-size:24px;border:none;"><ion-icon name="person"></ion-icon></div>
+                        <div>
+                            <h3 style="font-size: 16px;">Vidya shankar</h3>
+                            <p style="font-size: 13px; color: var(--text-secondary);">Delivery Partner • ⭐ 4.9</p>
+                        </div>
+                        <button class="btn-call"><ion-icon name="call"></ion-icon></button>
+                    </div>
+
+                    <div class="timeline">
+                        <div class="timeline-item completed">
+                            <div class="timeline-dot"><ion-icon name="checkmark"></ion-icon></div>
+                            <div class="timeline-title">Order Confirmed</div>
+                            <div class="timeline-time">10:24 AM</div>
+                        </div>
+                        <div class="timeline-item completed">
+                            <div class="timeline-dot"><ion-icon name="checkmark"></ion-icon></div>
+                            <div class="timeline-title">Order Packed</div>
+                            <div class="timeline-time">10:28 AM</div>
+                        </div>
+                        <div class="timeline-item active">
+                            <div class="timeline-dot"><ion-icon name="bicycle"></ion-icon></div>
+                            <div class="timeline-title" style="color: var(--primary-color);">Out for Delivery</div>
+                            <div class="timeline-time">10:32 AM</div>
+                        </div>
+                        <div class="timeline-item">
+                            <div class="timeline-dot"></div>
+                            <div class="timeline-title" style="color: var(--text-secondary);">Delivered</div>
+                            <div class="timeline-time">Pending</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+</body>
+
+</html>

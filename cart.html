@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Checkout - FreshCart</title>
+    <link rel="stylesheet" href="css/style.css">
+    <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
+    <script nomodule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"></script>
+    <style>
+        .checkout-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 40px;
+            margin-top: 20px;
+        }
+
+        @media(max-width: 900px) {
+            .checkout-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .checkout-card {
+            background: var(--surface-color);
+            border-radius: var(--border-radius);
+            padding: 30px;
+            box-shadow: var(--shadow-sm);
+            margin-bottom: 24px;
+        }
+
+        .checkout-title {
+            font-size: 20px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 15px;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 8px;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            font-family: inherit;
+        }
+        
+        .form-input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+        }
+
+        .payment-methods {
+            display: grid;
+            gap: 15px;
+        }
+
+        .payment-method {
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 15px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .payment-method:hover, .payment-method.active {
+            border-color: var(--primary-color);
+            background: rgba(16, 185, 129, 0.05);
+        }
+
+        .payment-icon {
+            font-size: 24px;
+            color: var(--primary-color);
+        }
+
+        .summary-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 15px;
+            color: var(--text-secondary);
+        }
+
+        .summary-item.total {
+            color: var(--text-primary);
+            font-size: 18px;
+            font-weight: 700;
+            border-top: 1px solid var(--border-color);
+            padding-top: 15px;
+            margin-top: 15px;
+        }
+
+        .checkout-cart-items {
+            max-height: 400px;
+            overflow-y: auto;
+            margin-bottom: 20px;
+            padding-right: 10px;
+        }
+
+        .mini-cart-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 15px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid var(--bg-color);
+        }
+
+        .mini-cart-item img {
+            width: 50px;
+            height: 50px;
+            border-radius: 8px;
+            object-fit: cover;
+        }
+        
+        .mini-cart-info {
+            flex: 1;
+        }
+        
+        .mini-cart-title {
+            font-weight: 500;
+            font-size: 14px;
+            margin-bottom: 4px;
+        }
+        
+        .mini-cart-price {
+            color: var(--primary-color);
+            font-weight: 600;
+        }
+
+        /* Success Overlay */
+        .success-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(255,255,255,0.95);
+            z-index: 2000;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.4s;
+        }
+        
+        .success-overlay.show {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .success-icon {
+            font-size: 80px;
+            color: var(--primary-color);
+            margin-bottom: 20px;
+            animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        @keyframes popIn {
+            0% { transform: scale(0); }
+            100% { transform: scale(1); }
+        }
+    </style>
+</head>
+<body>
+
+    <nav class="navbar">
+        <div class="container nav-container">
+            <a href="index.html" class="logo">
+                <div class="logo-icon"><ion-icon name="basket-outline"></ion-icon></div>
+                FreshCart
+            </a>
+            <div class="nav-actions">
+                <a href="index.html" class="nav-link">Continue Shopping</a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="main-content container">
+        <div class="checkout-grid fade-in">
+            
+            <!-- Forms Side -->
+            <div class="checkout-forms">
+                <!-- Shipping Address -->
+                <div class="checkout-card">
+                    <h2 class="checkout-title"><ion-icon name="location"></ion-icon> Delivery Address</h2>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">First Name</label>
+                            <input type="text" class="form-input" placeholder="John">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Last Name</label>
+                            <input type="text" class="form-input" placeholder="Doe">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Full Address / Flat no.</label>
+                        <input type="text" class="form-input" placeholder="123 Shopping Street, Area Name">
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Phone Number</label>
+                            <input type="text" class="form-input" placeholder="+91 9876543210">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Pin Code</label>
+                            <input type="text" class="form-input" placeholder="400001">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Payment Method -->
+                <div class="checkout-card">
+                    <h2 class="checkout-title"><ion-icon name="card"></ion-icon> Payment Method</h2>
+                    <div class="payment-methods">
+                        
+                        <label class="payment-method active">
+                            <input type="radio" name="payment" value="upi" checked>
+                            <div class="payment-icon"><ion-icon name="qr-code-outline"></ion-icon></div>
+                            <div>
+                                <div style="font-weight: 600;">UPI (Google Pay, PhonePe, Paytm)</div>
+                                <div style="font-size: 13px; color: var(--text-secondary);">Pay fast via UPI App</div>
+                            </div>
+                        </label>
+
+                        <label class="payment-method">
+                            <input type="radio" name="payment" value="card">
+                            <div class="payment-icon"><ion-icon name="card-outline"></ion-icon></div>
+                            <div>
+                                <div style="font-weight: 600;">Credit / Debit Card</div>
+                                <div style="font-size: 13px; color: var(--text-secondary);">Visa, MasterCard, RuPay</div>
+                            </div>
+                        </label>
+
+                        <label class="payment-method">
+                            <input type="radio" name="payment" value="cod">
+                            <div class="payment-icon"><ion-icon name="cash-outline"></ion-icon></div>
+                            <div>
+                                <div style="font-weight: 600;">Cash on Delivery (COD)</div>
+                                <div style="font-size: 13px; color: var(--text-secondary);">Pay when you receive the order</div>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Order Summary Side -->
+            <div class="checkout-summary">
+                <div class="checkout-card" style="position: sticky; top: 100px;">
+                    <h2 class="checkout-title"><ion-icon name="receipt"></ion-icon> Order Summary</h2>
+                    
+                    <div class="checkout-cart-items" id="checkoutCartItems">
+                        <!-- Populated by JS -->
+                    </div>
+
+                    <div class="summary-item">
+                        <span>Subtotal</span>
+                        <span id="summarySubtotal">₹0</span>
+                    </div>
+                    <div class="summary-item">
+                        <span>Delivery Fee</span>
+                        <span>₹40</span>
+                    </div>
+                    <div class="summary-item">
+                        <span>Tax</span>
+                        <span id="summaryTax">₹0</span>
+                    </div>
+                    <div class="summary-item total">
+                        <span>Total to Pay</span>
+                        <span id="summaryTotal">₹0</span>
+                    </div>
+
+                    <button class="btn-primary" style="width: 100%; margin-top: 20px; font-size: 16px; padding: 16px;" onclick="placeOrder()">Place Order</button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Success Output -->
+    <div class="success-overlay" id="successOverlay">
+        <ion-icon name="checkmark-circle" class="success-icon"></ion-icon>
+        <h1 style="font-size: 36px; margin-bottom: 10px; font-family: Outfit;">Order Placed Successfully!</h1>
+        <p style="color: var(--text-secondary); margin-bottom: 30px; font-size: 18px;">Your groceries are on the way. Order ID: #ORD-9824X</p>
+        <a href="delivery.html"><button class="btn-primary" style="padding: 14px 30px; font-size: 16px;">Track Your Order</button></a>
+    </div>
+
+    <script src="js/app.js"></script>
+    <script>
+        // Custom logic for checkout page
+        document.addEventListener('DOMContentLoaded', () => {
+            const storedCart = JSON.parse(localStorage.getItem('cart')) || [];
+            const container = document.getElementById('checkoutCartItems');
+            
+            if(storedCart.length === 0) {
+                container.innerHTML = '<p style="text-align:center; padding: 20px;">Your cart is empty.</p>';
+                return;
+            }
+
+            let subtotal = 0;
+            storedCart.forEach(item => {
+                subtotal += item.price * item.quantity;
+                container.innerHTML += `
+                    <div class="mini-cart-item">
+                        <img src="${item.image}" alt="">
+                        <div class="mini-cart-info">
+                            <div class="mini-cart-title">${item.name}</div>
+                            <div style="font-size: 12px; color: var(--text-secondary);">Qty: ${item.quantity}</div>
+                        </div>
+                        <div class="mini-cart-price">₹${item.price * item.quantity}</div>
+                    </div>
+                `;
+            });
+
+            const tax = Math.round(subtotal * 0.05); // 5% mock tax
+            const delivery = 40;
+            const total = subtotal + tax + delivery;
+
+            document.getElementById('summarySubtotal').innerText = `₹${subtotal}`;
+            document.getElementById('summaryTax').innerText = `₹${tax}`;
+            document.getElementById('summaryTotal').innerText = `₹${total}`;
+
+            // Add highlight on selected payment row
+            const paymentOptions = document.querySelectorAll('.payment-method');
+            paymentOptions.forEach(opt => {
+                opt.addEventListener('click', function() {
+                    paymentOptions.forEach(o => o.classList.remove('active'));
+                    this.classList.add('active');
+                });
+            });
+        });
+
+        function placeOrder() {
+            // Show Success UI
+            document.getElementById('successOverlay').classList.add('show');
+            // Clear cart memory
+            localStorage.removeItem('cart');
+        }
+    </script>
+</body>
+</html>
