@@ -15,7 +15,7 @@ router.get('/', (req, res) => {
             category: "Fruits",
             price: 80,
             originalPrice: 100,
-            image: "/assets/images/bananas.png",
+            image: "assets/images/bananas.png",
             rating: 4.8,
             reviews: 120,
             badge: "Bestseller"
@@ -26,7 +26,7 @@ router.get('/', (req, res) => {
             category: "Vegetables",
             price: 45,
             originalPrice: 60,
-            image: "/assets/images/tomatoes.png",
+            image: "assets/images/tomatoes.png",
             rating: 4.5,
             reviews: 85,
             badge: "Fresh Arrival"
@@ -37,7 +37,7 @@ router.get('/', (req, res) => {
             category: "Bakery",
             price: 55,
             originalPrice: 65,
-            image: "/assets/images/bread.png",
+            image: "assets/images/bread.png",
             rating: 4.7,
             reviews: 230,
             badge: null
@@ -48,7 +48,7 @@ router.get('/', (req, res) => {
             category: "Dairy & Eggs",
             price: 66,
             originalPrice: 66,
-            image: "/assets/images/milk.png",
+            image: "assets/images/milk.png",
             rating: 4.9,
             reviews: 500,
             badge: "High Demand"
@@ -59,7 +59,7 @@ router.get('/', (req, res) => {
             category: "Fruits",
             price: 220,
             originalPrice: 250,
-            image: "/assets/images/apples.png",
+            image: "assets/images/apples.png",
             rating: 4.6,
             reviews: 156,
             badge: "Offer"
@@ -70,7 +70,7 @@ router.get('/', (req, res) => {
             category: "Vegetables",
             price: 25,
             originalPrice: 35,
-            image: "/assets/images/spinach.png",
+            image: "assets/images/spinach.png",
             rating: 4.3,
             reviews: 90,
             badge: null
@@ -81,7 +81,7 @@ router.get('/', (req, res) => {
             category: "Dairy & Eggs",
             price: 60,
             originalPrice: 75,
-            image: "/assets/images/eggs.png",
+            image: "assets/images/eggs.png",
             rating: 4.7,
             reviews: 310,
             badge: "Bestseller"
@@ -92,7 +92,7 @@ router.get('/', (req, res) => {
             category: "Vegetables",
             price: 15,
             originalPrice: 25,
-            image: "/assets/images/spinach.png",
+            image: "assets/images/spinach.png",
             rating: 4.4,
             reviews: 45,
             badge: null
@@ -106,7 +106,7 @@ router.get('/', (req, res) => {
             category: "Snacks",
             price: 40,
             originalPrice: 50,
-            image: "/assets/images/chocolate.png.jpg",
+            image: "assets/images/chocolate.png.jpg",
             rating: 4.7,
             reviews: 200,
             badge: "Popular"
@@ -117,7 +117,7 @@ router.get('/', (req, res) => {
             category: "Snacks",
             price: 20,
             originalPrice: 25,
-            image: "/assets/images/lays chips.png.jpg",
+            image: "assets/images/lays chips.png.jpg",
             rating: 4.5,
             reviews: 150,
             badge: null
@@ -138,7 +138,7 @@ router.get('/', (req, res) => {
             category: "Snacks",
             price: 20,
             originalPrice: 25,
-            image: "/assets/images/Kurkure.jpg",
+            image: "assets/images/Kurkure.jpg",
             rating: 4.4,
             reviews: 112,
             badge: "New"
@@ -149,7 +149,7 @@ router.get('/', (req, res) => {
             category: "Beverages",
             price: 30,
             originalPrice: 35,
-            image: "/assets/images/amul kool.jpg",
+            image: "assets/images/amul kool.jpg",
             rating: 4.5,
             reviews: 87,
             badge: null
@@ -160,7 +160,7 @@ router.get('/', (req, res) => {
             category: "Beverages",
             price: 20,
             originalPrice: 25,
-            image: "/assets/images/lemon juice.jpg",
+            image: "assets/images/lemon juice.jpg",
             rating: 4.3,
             reviews: 76,
             badge: "Fresh"
@@ -171,7 +171,7 @@ router.get('/', (req, res) => {
             category: "Dairy & Eggs",
             price: 25,
             originalPrice: 30,
-            image: "/assets/images/amul butter.jpg",
+            image: "assets/images/amul butter.jpg",
             rating: 4.7,
             reviews: 64,
             badge: null
@@ -182,7 +182,7 @@ router.get('/', (req, res) => {
             category: "Snacks",
             price: 15,
             originalPrice: 20,
-            image: "/assets/images/Maggi.jpg",
+            image: "assets/images/Maggi.jpg",
             rating: 4.6,
             reviews: 211,
             badge: "Popular"
@@ -193,7 +193,7 @@ router.get('/', (req, res) => {
             category: "Beverages",
             price: 35,
             originalPrice: 40,
-            image: "/assets/images/Maaza.jpg",
+            image: "assets/images/Maaza.jpg",
             rating: 4.4,
             reviews: 102,
             badge: null
@@ -204,7 +204,7 @@ router.get('/', (req, res) => {
             category: "Snacks",
             price: 90,
             originalPrice: 100,
-            image: "/assets/images/Jems.jpg",
+            image: "assets/images/Jems.jpg",
             rating: 4.2,
             reviews: 80,
             badge: null
@@ -215,7 +215,7 @@ router.get('/', (req, res) => {
             category: "Snacks",
             price: 55,
             originalPrice: 60,
-            image: "/assets/images/Kinder joy.jpg",
+            image: "assets/images/Kinder joy.jpg",
             rating: 4.6,
             reviews: 98,
             badge: "Kids Favorite"
@@ -226,7 +226,7 @@ router.get('/', (req, res) => {
             category: "Dairy & Eggs",
             price: 30,
             originalPrice: 35,
-            image: "/assets/images/icecream.jpg",
+            image: "assets/images/icecream.jpg",
             rating: 4.5,
             reviews: 74,
             badge: null
@@ -237,7 +237,7 @@ router.get('/', (req, res) => {
             category: "Beverages",
             price: 40,
             originalPrice: 45,
-            image: "/assets/images/Fanta.jpg",
+            image: "assets/images/Fanta.jpg",
             rating: 4.3,
             reviews: 66,
             badge: null
@@ -248,7 +248,7 @@ router.get('/', (req, res) => {
             category: "Beverages",
             price: 45,
             originalPrice: 50,
-            image: "/assets/images/cococola.png.jpg",
+            image: "assets/images/cococola.png.jpg",
             rating: 4.4,
             reviews: 91,
             badge: "Chilled"
@@ -259,7 +259,7 @@ router.get('/', (req, res) => {
             category: "Beverages",
             price: 160,
             originalPrice: 150,
-            image: "/assets/images/Child Beer.jpg",
+            image: "assets/images/Child Beer.jpg",
             rating: 4.1,
             reviews: 38,
             badge: null
@@ -270,7 +270,7 @@ router.get('/', (req, res) => {
             category: "Beverages",
             price: 120,
             originalPrice: 140,
-            image: "/assets/images/Coca Cola Can Mixed Tray 330ml 24 Pack.jpg",
+            image: "assets/images/Coca Cola Can Mixed Tray 330ml 24 Pack.jpg",
             rating: 4.5,
             reviews: 57,
             badge: "Party Pack"
@@ -281,7 +281,7 @@ router.get('/', (req, res) => {
             category: "Snacks",
             price: 20,
             originalPrice: 15,
-            image: "/assets/images/Tiger Biscuit.jpg",
+            image: "assets/images/Tiger Biscuit.jpg",
             rating: 4.1,
             reviews: 34,
             badge: null

@@ -52,7 +52,7 @@ function resolveImagePath(imagePath) {
   if (!imagePath) return '';
   
   // Ensure path starts with /
-  let path = imagePath.startsWith('/') ? imagePath : `/${imagePath}`;
+  let path = imagePath.startsWith('/') ? imagePath.slice(1) : imagePath;
   
   // In Production (Vercel), assets are served from the root of the domain
   if (IS_PRODUCTION) return path;

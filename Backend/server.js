@@ -29,12 +29,13 @@ app.use(cors({
     if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
+      console.warn(`Blocked by CORS: ${origin}`); // Debugging mein help karega
       callback(new Error('Not allowed by CORS'));
     }
   },
-  credentials: true
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE'] // 👈 Yeh line add kar dijiye
 }));
-
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/products', productRoutes);
@@ -47,14 +48,17 @@ app.get('/api/health', (req, res) => {
 // DB Connect
 async function connectDB() {
   try {
+    // 🔥 Mongoose strictQuery warning hatane ke liye (optional but recommended for Mongoose 7+)
+    mongoose.set('strictQuery', false); 
     await mongoose.connect(process.env.MONGO_URI);
     console.log('✅ MongoDB Connected');
   } catch (err) {
     console.error('❌ DB Error:', err.message);
+    process.exit(1); // 👈 Yeh line add karni hai taaki Render app ko restart kar sake
   }
 }
 
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 1111;
 
 app.listen(PORT, () => {
   connectDB();
