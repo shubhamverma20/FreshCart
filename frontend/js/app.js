@@ -5,7 +5,7 @@
 const IS_PRODUCTION = !window.location.hostname.includes('localhost');
 
 // 👉 INSTRUCTION: Jab frontend ko Vercel pe deploy karo, to niche "YOUR_RENDER_URL" ko apna Render link se replace karo.
-const PRODUCTION_API_URL = ""; // Example: "https://fresh-cart-api.onrender.com";
+const PRODUCTION_API_URL = "https://freshcart-dewk.onrender.com";
 
 const API_BASE = IS_PRODUCTION ? PRODUCTION_API_URL : 'http://localhost:1111';
 
