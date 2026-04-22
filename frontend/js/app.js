@@ -1,15 +1,12 @@
-// 🌍 Configuration
-// Automatic Detection: 
-// Agar domain localhost hai to Backend 1111 use karo.
-// Agar Vercel/Production hai, to NEECHE LIKHAI GAYI Apni Render URL daalo.
+// 🌍 Smart Environment Detection
+// Yeh automatic detect karta hai ki aap Localhost pe ho ya Production (Vercel) pe.
 const IS_PRODUCTION = !window.location.hostname.includes('localhost');
 
-// 👉 INSTRUCTION: Jab frontend ko Vercel pe deploy karo, to niche "YOUR_RENDER_URL" ko apna Render link se replace karo.
-const PRODUCTION_API_URL = "https://freshcart-dewk.onrender.com";
+// 👉 INSTRUCTION: Agar apna Render URL badla hai to niche update karna.
+const PRODUCTION_API_URL = "https://freshcart-dewk.onrender.com"; 
 
 const API_BASE = IS_PRODUCTION ? PRODUCTION_API_URL : 'http://localhost:1111';
-
-console.log(`[System]: Using API Base -> ${API_BASE}`);
+console.log(`[System]: Connected to API -> ${API_BASE}`);
 
 // Cart State
 let cart = JSON.parse(localStorage.getItem('cart')) || [];
@@ -34,7 +31,7 @@ async function loadProducts() {
     renderProducts();
   } catch (error) {
     console.error("Error loading products:", error);
-    alert("Failed to load groceries. Please check your internet connection.");
+    // alert("Failed to load groceries. Please check your internet connection.");
   } finally {
     showLoading(false);
   }
@@ -48,13 +45,20 @@ function showLoading(show) {
   }
 }
 
-// Helper: Resolve Image Path
+// ✅ Single Optimized Image Resolver
 function resolveImagePath(imagePath) {
-  if (!imagePath) return 'https://via.placeholder.com/150'; // Fallback
+  if (!imagePath) return '';
   
-  // Since Frontend and Assets are hosted together (on Vercel in prod),
-  // we don't need to prepend the Backend URL anymore.
-  return imagePath;
+  if (IS_PRODUCTION) {
+    // Production: Vercel se assets seedha load honge
+    return imagePath;
+  } else {
+    // Localhost: File path ko adjust karna padta hai kyuki pages alag folder mein hain
+    if (imagePath.startsWith('/assets/')) {
+      return `..${imagePath}`; // e.g. /assets/img.jpg -> ../assets/img.jpg
+    }
+    return imagePath;
+  }
 }
 
 // --- Rendering Functions ---
@@ -101,8 +105,7 @@ function addToCart(id) {
   saveCart();
   updateCartUI();
   
-  // Visual feedback
-  if(cartSidebar.classList.contains('open')) updateCartUI(); // Refresh sidebar if open
+  if(cartSidebar.classList.contains('open')) updateCartUI();
 }
 
 function removeFromCart(id) {
@@ -129,13 +132,11 @@ function saveCart() {
 }
 
 function updateCartUI() {
-  // Badge Count
   if (cartCountEl) {
     const totalQty = cart.reduce((acc, item) => acc + item.quantity, 0);
     cartCountEl.innerText = totalQty;
   }
 
-  // Sidebar Items
   if (cartItemsContainer) {
     if (cart.length === 0) {
       cartItemsContainer.innerHTML = `<div class="cart-empty">Your cart is empty.<br>Add some fresh groceries!</div>`;
