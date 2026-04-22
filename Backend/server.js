@@ -14,9 +14,13 @@ const app = express();
 app.use(express.json());
 
 const allowedOrigins = [
-  process.env.CLIENT_URL, 
   'http://localhost:5500',
-  'http://localhost:1111'
+  'http://localhost:5501',      // Live Server Default
+  'http://localhost:1111',      // Your custom backend port
+  'http://127.0.0.1:5500',
+  'http://127.0.0.1:5501',      // 🔥 THIS WAS MISSING - Fixed this
+  'http://127.0.0.1:1111',
+  ...(process.env.CLIENT_URL ? [process.env.CLIENT_URL] : []) 
 ].filter(Boolean);
 
 app.use(cors({

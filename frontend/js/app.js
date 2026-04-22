@@ -1,18 +1,20 @@
 // 🌍 Smart Environment Detection
-// Yeh automatic detect karta hai ki aap Localhost pe ho ya Production (Vercel) pe.
-const IS_PRODUCTION = !window.location.hostname.includes('localhost');
+// Automatically decide based on hostname whether we are on localhost or deployed (Vercel)
+const IS_PRODUCTION = window.location.hostname.includes('localhost') || 
+                      window.location.hostname.includes('127.0.0.1') ? false : true;
 
-// 👉 INSTRUCTION: Agar apna Render URL badla hai to niche update karna.
+// 👉 INSTRUCTION: Yahan apna Render Backend URL daalein jo production me use hona hai
 const PRODUCTION_API_URL = "https://freshcart-dewk.onrender.com"; 
 
+// Decide API Base
 const API_BASE = IS_PRODUCTION ? PRODUCTION_API_URL : 'http://localhost:1111';
-console.log(`[System]: Connected to API -> ${API_BASE}`);
+console.log(`[System]: Detected ${IS_PRODUCTION ? 'Production Mode' : 'Development Mode'} -> Connecting to: ${API_BASE}`);
 
-// Cart State
+// --- State Management ---
 let cart = JSON.parse(localStorage.getItem('cart')) || [];
 let products = [];
 
-// DOM Elements
+// --- DOM Elements Cache ---
 const productsContainer = document.getElementById('productsContainer');
 const cartCountEl = document.getElementById('cartCount');
 const cartItemsContainer = document.getElementById('cartItemsContainer');
@@ -20,18 +22,18 @@ const cartTotalPriceEl = document.getElementById('cartTotalPrice');
 const cartSidebar = document.getElementById('cartSidebar');
 const cartOverlay = document.getElementById('cartOverlay');
 
-// 🔥 Fetch Products
+// 🔥 Load Products from API
 async function loadProducts() {
   showLoading(true);
   try {
     const response = await fetch(`${API_BASE}/api/products`);
-    if (!response.ok) throw new Error('Failed to fetch products');
+    if (!response.ok) throw new Error('Network response was not ok');
     
     products = await response.json();
     renderProducts();
   } catch (error) {
     console.error("Error loading products:", error);
-    // alert("Failed to load groceries. Please check your internet connection.");
+    productsContainer.innerHTML = `<div class="empty-state">⚠️ Failed to load products. Please refresh later.</div>`;
   } finally {
     showLoading(false);
   }
@@ -40,25 +42,24 @@ async function loadProducts() {
 function showLoading(show) {
   if (productsContainer) {
     productsContainer.innerHTML = show 
-      ? '<p class="loading">Loading fresh items...</p>' 
+      ? '<div class="loading-grid"><p>Loading Fresh Items...</p></div>' 
       : '';
   }
 }
 
-// ✅ Single Optimized Image Resolver
+// ✅ Asset Path Resolver (Handles Localhost & Production seamlessly)
 function resolveImagePath(imagePath) {
   if (!imagePath) return '';
   
-  if (IS_PRODUCTION) {
-    // Production: Vercel se assets seedha load honge
-    return imagePath;
-  } else {
-    // Localhost: File path ko adjust karna padta hai kyuki pages alag folder mein hain
-    if (imagePath.startsWith('/assets/')) {
-      return `..${imagePath}`; // e.g. /assets/img.jpg -> ../assets/img.jpg
-    }
-    return imagePath;
-  }
+  // Ensure path starts with /
+  let path = imagePath.startsWith('/') ? imagePath : `/${imagePath}`;
+  
+  // In Production (Vercel), assets are served from the root of the domain
+  if (IS_PRODUCTION) return path;
+
+  // In Localhost (Live Server):
+  // Assuming assets folder is in the same root directory as index.html (frontend/)
+  return path;
 }
 
 // --- Rendering Functions ---
@@ -68,14 +69,16 @@ function renderProducts() {
   productsContainer.innerHTML = '';
 
   products.forEach((product, index) => {
-    const discountBadge = product.originalPrice > product.price 
+    const delay = index * 0.1;
+    const discountBadge = product.originalPrice && product.originalPrice > product.price 
       ? `<span style="color:#ef4444; font-size:12px; margin-left:8px; text-decoration:line-through;">₹${product.originalPrice}</span>` 
       : '';
-    
-    const html = `
-      <div class="product-card fade-in" style="animation-delay: ${index * 0.05}s">
-        <div class="product-badge">${product.badge || ''}</div>
-        <img src="${resolveImagePath(product.image)}" alt="${product.name}" loading="lazy">
+
+    // Generate Product Card HTML
+    const productCard = `
+      <div class="product-card fade-in" style="animation-delay: ${delay}s">
+        ${product.badge ? `<div class="product-badge">${product.badge}</div>` : ''}
+        <img src="${resolveImagePath(product.image)}" class="product-image" alt="${product.name}" loading="lazy">
         <div class="product-category">${product.category}</div>
         <h3 class="product-title">${product.name}</h3>
         <div class="product-rating">⭐ ${product.rating} (${product.reviews})</div>
@@ -85,7 +88,7 @@ function renderProducts() {
         </div>
       </div>
     `;
-    productsContainer.insertAdjacentHTML('beforeend', html);
+    productsContainer.insertAdjacentHTML('beforeend', productCard);
   });
 }
 
@@ -104,8 +107,7 @@ function addToCart(id) {
 
   saveCart();
   updateCartUI();
-  
-  if(cartSidebar.classList.contains('open')) updateCartUI();
+  openCartSidebar(); // Auto-open cart on add
 }
 
 function removeFromCart(id) {
@@ -132,70 +134,73 @@ function saveCart() {
 }
 
 function updateCartUI() {
+  // Update Badge Count
   if (cartCountEl) {
     const totalQty = cart.reduce((acc, item) => acc + item.quantity, 0);
     cartCountEl.innerText = totalQty;
   }
 
-  if (cartItemsContainer) {
-    if (cart.length === 0) {
-      cartItemsContainer.innerHTML = `<div class="cart-empty">Your cart is empty.<br>Add some fresh groceries!</div>`;
-      if (cartTotalPriceEl) cartTotalPriceEl.innerText = '₹0';
-      return;
-    }
+  // Update Sidebar Content
+  if (!cartItemsContainer) return;
 
-    let totalAmount = 0;
-    let html = '';
-    
-    cart.forEach(item => {
-      totalAmount += item.price * item.quantity;
-      html += `
-        <div class="cart-item">
-          <img src="${resolveImagePath(item.image)}" alt="${item.name}">
-          <div class="cart-item-details">
-            <div class="cart-item-title">${item.name}</div>
-            <div class="cart-item-price">₹${item.price}</div>
-            <div class="cart-item-qty">
-              <button onclick="updateQuantity(${item.id}, -1)">-</button>
-              <span>${item.quantity}</span>
-              <button onclick="updateQuantity(${item.id}, 1)">+</button>
-            </div>
+  if (cart.length === 0) {
+    cartItemsContainer.innerHTML = `<div class="cart-empty">Your cart is empty.<br>Add some fresh groceries!</div>`;
+    if (cartTotalPriceEl) cartTotalPriceEl.innerText = '₹0';
+    return;
+  }
+
+  let html = '';
+  let totalAmount = 0;
+  
+  cart.forEach(item => {
+    totalAmount += item.price * item.quantity;
+    html += `
+      <div class="cart-item fade-in">
+        <img src="${resolveImagePath(item.image)}" alt="${item.name}">
+        <div class="cart-item-details">
+          <div class="cart-item-title">${item.name}</div>
+          <div class="cart-item-price">₹${item.price}</div>
+          <div class="cart-item-qty">
+            <button onclick="updateQuantity(${item.id}, -1)">-</button>
+            <span>${item.quantity}</span>
+            <button onclick="updateQuantity(${item.id}, 1)">+</button>
           </div>
-          <button class="cart-remove-btn" onclick="removeFromCart(${item.id})">✕</button>
         </div>
-      `;
-    });
-
-    cartItemsContainer.innerHTML = html;
-    if (cartTotalPriceEl) cartTotalPriceEl.innerText = `₹${totalAmount}`;
-  }
-}
-
-// --- Event Listeners ---
-
-if (cartSidebar && cartOverlay) {
-  cartSidebar.addEventListener('transitionend', () => {
-    if (!cartSidebar.classList.contains('open')) {
-      cartOverlay.classList.remove('open');
-      document.body.style.overflow = 'auto';
-    }
+        <button class="cart-remove-btn" onclick="removeFromCart(${item.id})">✕</button>
+      </div>
+    `;
   });
+
+  cartItemsContainer.innerHTML = html;
+  if (cartTotalPriceEl) cartTotalPriceEl.innerText = `₹${totalAmount}`;
 }
 
-window.toggleCart = function() {
-  const isOpen = cartSidebar.classList.contains('open');
-  if (isOpen) {
-    cartSidebar.classList.remove('open');
-    cartOverlay.classList.remove('open');
-    document.body.style.overflow = 'auto';
-  } else {
-    cartSidebar.classList.add('open');
-    cartOverlay.classList.add('open');
-    document.body.style.overflow = 'hidden';
-  }
-};
+// --- UI Toggles ---
 
-// Init
+function toggleCart() {
+  if (!cartSidebar || !cartOverlay) return;
+  const isOpen = cartSidebar.classList.contains('open');
+  
+  if (isOpen) {
+    closeCartSidebar();
+  } else {
+    openCartSidebar();
+  }
+}
+
+function openCartSidebar() {
+  cartSidebar.classList.add('open');
+  cartOverlay.classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeCartSidebar() {
+  cartSidebar.classList.remove('open');
+  cartOverlay.classList.remove('open');
+  document.body.style.overflow = 'auto';
+}
+
+// Initialize App
 document.addEventListener('DOMContentLoaded', () => {
   loadProducts();
   updateCartUI();
