@@ -20,6 +20,7 @@ const allowedOrigins = [
   'http://127.0.0.1:5500',
   'http://127.0.0.1:5501',      // 🔥 THIS WAS MISSING - Fixed this
   'http://127.0.0.1:1111',
+  'https://freshcart-grocery-delivery.vercel.app',
   ...(process.env.CLIENT_URL ? [process.env.CLIENT_URL] : []) 
 ].filter(Boolean);
 
