@@ -3,7 +3,7 @@
 const IS_PRODUCTION = !window.location.hostname.includes('localhost');
 
 // 👉 INSTRUCTION: Agar apna Render URL badla hai to niche update karna.
-const PRODUCTION_API_URL = "https://freshcart-dewk.onrender.com"; 
+const PRODUCTION_API_URL = "https://freshcart-dewk.onrender.com/api/health"; 
 
 const API_BASE = IS_PRODUCTION ? PRODUCTION_API_URL : 'http://localhost:1111';
 console.log(`[System]: Connected to API -> ${API_BASE}`);
