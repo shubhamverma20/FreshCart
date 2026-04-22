@@ -5,6 +5,7 @@
   ],
   "routes": [
     { "handle": "filesystem" },
-    { "src": "/(.*)", "dest": "/frontend/Pages/$1" }
+    { "src": "/", "dest": "/frontend/Pages/index.html" },
+    { "src": "/(.*)\\.html$", "dest": "/frontend/Pages/$1.html" }
   ]
 }
