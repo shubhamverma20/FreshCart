@@ -1,8 +1,5 @@
 {
   "redirects": [
-    { "source": "/", "destination": "/Pages/index.html", "permanent": false }
-  ],
-  "rewrites": [
-    { "source": "/(.*)\\.html", "destination": "/Pages/$1.html" }
+    { "source": "/", "destination": "/frontend/Pages/index.html", "permanent": false }
   ]
 }
