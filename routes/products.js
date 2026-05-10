@@ -1,16 +1,18 @@
 const express = require('express');
 const router = express.Router();
-const upload = require('../middleware/upload'); 
-const Product = require('../models/Product');
+const upload = require('../middleware/upload'); // Cloudinary middleware import karein
+const Product = require('../models/Product');  // Aapka Mongoose Model
 
-// Yeh aapka updated Cloudinary Base URL hai
+// Cloudinary Base URL (Jo aapne folder banaya hai)
 const CLOUDINARY_BASE = "https://res.cloudinary.com/drscamscp/image/upload/q_auto,f_auto/FreshCart_Products/";
 
-// GET ALL PRODUCTS
+// --- 1. GET ALL PRODUCTS ---
 router.get('/', async (req, res) => {
     try {
+        // Database se naye (dynamic) products fetch karein
         const dbProducts = await Product.find();
 
+        // Aapke 25 Static Products ki list
         const staticProducts = [
             { id: 1, name: "Fresh Organic Bananas", category: "Fruits", price: 80, originalPrice: 100, image: CLOUDINARY_BASE + "bananas.png", rating: 4.8, reviews: 120, badge: "Bestseller" },
             { id: 2, name: "Farm Fresh Tomatoes", category: "Vegetables", price: 45, originalPrice: 60, image: CLOUDINARY_BASE + "tomatoes.png", rating: 4.5, reviews: 85, badge: "Fresh Arrival" },
@@ -32,33 +34,40 @@ router.get('/', async (req, res) => {
             { id: 18, name: "Jems Pack", category: "Snacks", price: 90, originalPrice: 100, image: CLOUDINARY_BASE + "Jems.jpg", rating: 4.2, reviews: 80, badge: null },
             { id: 19, name: "Kinder Joy", category: "Snacks", price: 55, originalPrice: 60, image: CLOUDINARY_BASE + "Kinder%20joy.jpg", rating: 4.6, reviews: 98, badge: "Kids Favorite" },
             { id: 20, name: "Vanilla Ice Cream Cup", category: "Dairy & Eggs", price: 30, originalPrice: 35, image: CLOUDINARY_BASE + "icecream.jpg", rating: 4.5, reviews: 74, badge: null },
-            { id: 21, name: "Fanta", category: "Beverages", category: "Beverages", price: 40, originalPrice: 45, image: CLOUDINARY_BASE + "Fanta.jpg", rating: 4.3, reviews: 66, badge: null },
+            { id: 21, name: "Fanta", category: "Beverages", price: 40, originalPrice: 45, image: CLOUDINARY_BASE + "Fanta.jpg", rating: 4.3, reviews: 66, badge: null },
             { id: 22, name: "Coca Cola Bottle", category: "Beverages", price: 45, originalPrice: 50, image: CLOUDINARY_BASE + "cococola.png.jpg", rating: 4.4, reviews: 91, badge: "Chilled" },
             { id: 23, name: "Child Beer Malt Drink", category: "Beverages", price: 160, originalPrice: 150, image: CLOUDINARY_BASE + "Child%20Beer.jpg", rating: 4.1, reviews: 38, badge: null },
             { id: 24, name: "Coca Cola Can Pack", category: "Beverages", price: 120, originalPrice: 140, image: CLOUDINARY_BASE + "Coca%20Cola%20Can%20Mixed%20Tray%20330ml%2024%20Pack.jpg", rating: 4.5, reviews: 57, badge: "Party Pack" },
             { id: 25, name: "Tiger Biscuit", category: "Snacks", price: 20, originalPrice: 15, image: CLOUDINARY_BASE + "Tiger%20Biscuit.jpg", rating: 4.1, reviews: 34, badge: null }
         ];
 
+        // Combine both: Database data + Static data
         res.json([...dbProducts, ...staticProducts]);
     } catch (err) {
-        res.status(500).json({ message: "Data loading failed" });
+        res.status(500).json({ message: "Products load nahi ho paye" });
     }
 });
 
-// ADD NEW PRODUCT (CLOUDINARY)
+// --- 2. POST ROUTE (Admin panel se add karne ke liye) ---
 router.post('/add', upload.single('image'), async (req, res) => {
     try {
-        const { name, price, category } = req.body;
+        const { name, price, category, originalPrice, badge } = req.body;
+        
         const newProduct = new Product({
             name,
             price,
             category,
+            originalPrice,
+            badge: badge || null,
+            // req.file.path mein Cloudinary ka auto-generated link hoga
             image: req.file ? req.file.path : CLOUDINARY_BASE + "default.png" 
         });
+
         await newProduct.save();
         res.status(201).json(newProduct);
     } catch (err) {
-        res.status(500).json({ message: "Upload failed!" });
+        console.error("Upload Error:", err);
+        res.status(500).json({ message: "Cloudinary upload failed!" });
     }
 });
 
