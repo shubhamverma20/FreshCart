@@ -41,7 +41,14 @@ router.get('/', async (req, res) => {
 
         res.json([...dbProducts, ...staticProducts]);
     } catch (err) {
-        res.status(500).json({ message: "Data loading failed" });
+        console.error("Database fetch failed, serving static products only.");
+        const staticProducts = [
+            { id: 1, name: "Fresh Organic Bananas", category: "Fruits", price: 80, originalPrice: 100, image: "https://res.cloudinary.com/drscamscp/image/upload/q_auto,f_auto/FreshCart_Products/bananas.png", rating: 4.8, reviews: 120, badge: "Bestseller" },
+            { id: 2, name: "Farm Fresh Tomatoes", category: "Vegetables", price: 45, originalPrice: 60, image: "https://res.cloudinary.com/drscamscp/image/upload/q_auto,f_auto/FreshCart_Products/tomatoes.png", rating: 4.5, reviews: 85, badge: "Fresh Arrival" },
+            { id: 3, name: "Whole Wheat Bread", category: "Bakery", price: 55, originalPrice: 65, image: "https://res.cloudinary.com/drscamscp/image/upload/q_auto,f_auto/FreshCart_Products/bread.png", rating: 4.7, reviews: 230, badge: null },
+            { id: 4, name: "Amul Pure Milk (1L)", category: "Dairy & Eggs", price: 66, originalPrice: 66, image: "https://res.cloudinary.com/drscamscp/image/upload/q_auto,f_auto/FreshCart_Products/milk.png", rating: 4.9, reviews: 500, badge: "High Demand" }
+        ];
+        res.json(staticProducts);
     }
 });
 

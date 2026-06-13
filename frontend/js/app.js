@@ -7,7 +7,7 @@ const IS_PRODUCTION = window.location.hostname.includes('localhost') ||
 const PRODUCTION_API_URL = "https://freshcart-dewk.onrender.com"; 
 
 // Decide API Base
-const API_BASE = IS_PRODUCTION ? PRODUCTION_API_URL : 'http://localhost:1111';
+const API_BASE = IS_PRODUCTION ? PRODUCTION_API_URL : 'http://localhost:5000';
 console.log(`[System]: Detected ${IS_PRODUCTION ? 'Production Mode' : 'Development Mode'} -> Connecting to: ${API_BASE}`);
 
 // --- State Management ---
@@ -30,12 +30,12 @@ async function loadProducts() {
     if (!response.ok) throw new Error('Network response was not ok');
     
     products = await response.json();
+    showLoading(false);
     renderProducts();
   } catch (error) {
     console.error("Error loading products:", error);
-    productsContainer.innerHTML = `<div class="empty-state">⚠️ Failed to load products. Please refresh later.</div>`;
-  } finally {
     showLoading(false);
+    productsContainer.innerHTML = `<div class="empty-state">⚠️ Failed to load products. Please refresh later.</div>`;
   }
 }
 
@@ -156,7 +156,7 @@ function updateCartUI() {
     totalAmount += item.price * item.quantity;
     html += `
       <div class="cart-item fade-in">
-        <img src="${resolveImagePath(item.image)}" alt="${item.name}">
+        <img src="${resolveImagePath(item.image)}" alt="${item.name}" loading="lazy">
         <div class="cart-item-details">
           <div class="cart-item-title">${item.name}</div>
           <div class="cart-item-price">₹${item.price}</div>

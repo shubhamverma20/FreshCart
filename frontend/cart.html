@@ -332,7 +332,7 @@
                 subtotal += item.price * item.quantity;
                 container.innerHTML += `
                     <div class="mini-cart-item">
-                        <img src="${getImagePath(item.image)}" alt="${item.name}">
+                        <img src="${getImagePath(item.image)}" alt="${item.name}" loading="lazy">
                         <div class="mini-cart-info">
                             <div class="mini-cart-title">${item.name}</div>
                             <div style="font-size: 12px; color: var(--text-secondary);">Qty: ${item.quantity}</div>

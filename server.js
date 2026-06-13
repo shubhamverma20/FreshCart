@@ -11,11 +11,31 @@ const app = express();
 
 // Middleware
 app.use(express.json());
-app.use(cors({ origin: process.env.CLIENT_URL }));
+app.use(cors({
+  origin: [
+    'http://localhost:5500',
+    'http://localhost:5501',
+    'http://127.0.0.1:5500',
+    'http://127.0.0.1:5501',
+    process.env.CLIENT_URL
+  ].filter(Boolean),
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE']
+}));
+
+// Health Check
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'Server is Running', timestamp: new Date() });
+});
+
+// Test route
+app.get('/', (req, res) => {
+  res.json({ message: 'Server is working!' });
+});
 
 // Routes
 app.use('/api/auth', authRoutes);
-napp.use('/api/products', productRoutes);
+app.use('/api/products', productRoutes);
 
 // Database Connection
 mongoose.connect(process.env.MONGO_URI)

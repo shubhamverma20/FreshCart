@@ -37,6 +37,17 @@ app.use(cors({
   methods: ['GET', 'POST', 'PUT', 'DELETE'] // 👈 Yeh line add kar dijiye
 }));
 // Routes
+app.get('/', (req, res) => {
+  res.json({ 
+    message: '🚀 FreshCart Backend is Running!',
+    endpoints: {
+      health: '/api/health',
+      products: '/api/products',
+      auth: '/api/auth'
+    }
+  });
+});
+
 app.use('/api/auth', authRoutes);
 app.use('/api/products', productRoutes);
 
@@ -54,7 +65,7 @@ async function connectDB() {
     console.log('✅ MongoDB Connected');
   } catch (err) {
     console.error('❌ DB Error:', err.message);
-    process.exit(1); // 👈 Yeh line add karni hai taaki Render app ko restart kar sake
+    console.warn('⚠️ Server will continue to run without MongoDB connection.');
   }
 }
 

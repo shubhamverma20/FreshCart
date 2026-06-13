@@ -8,12 +8,8 @@ const CLOUDINARY_BASE = "https://res.cloudinary.com/drscamscp/image/upload/q_aut
 
 // --- 1. GET ALL PRODUCTS ---
 router.get('/', async (req, res) => {
-    try {
-        // Database se naye (dynamic) products fetch karein
-        const dbProducts = await Product.find();
-
-        // Aapke 25 Static Products ki list
-        const staticProducts = [
+    // Aapke 25 Static Products ki list
+    const staticProducts = [
             { id: 1, name: "Fresh Organic Bananas", category: "Fruits", price: 80, originalPrice: 100, image: CLOUDINARY_BASE + "bananas.png", rating: 4.8, reviews: 120, badge: "Bestseller" },
             { id: 2, name: "Farm Fresh Tomatoes", category: "Vegetables", price: 45, originalPrice: 60, image: CLOUDINARY_BASE + "tomatoes.png", rating: 4.5, reviews: 85, badge: "Fresh Arrival" },
             { id: 3, name: "Whole Wheat Bread", category: "Bakery", price: 55, originalPrice: 65, image: CLOUDINARY_BASE + "bread.png", rating: 4.7, reviews: 230, badge: null },
@@ -41,11 +37,8 @@ router.get('/', async (req, res) => {
             { id: 25, name: "Tiger Biscuit", category: "Snacks", price: 20, originalPrice: 15, image: CLOUDINARY_BASE + "Tiger%20Biscuit.jpg", rating: 4.1, reviews: 34, badge: null }
         ];
 
-        // Combine both: Database data + Static data
-        res.json([...dbProducts, ...staticProducts]);
-    } catch (err) {
-        res.status(500).json({ message: "Products load nahi ho paye" });
-    }
+        // Return static products (DB will be added when available)
+        res.json(staticProducts);
 });
 
 // --- 2. POST ROUTE (Admin panel se add karne ke liye) ---
