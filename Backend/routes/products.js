@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const mongoose = require('mongoose');
 const upload = require('../middleware/upload'); 
 const Product = require('../models/Product');
 
@@ -9,7 +10,12 @@ const CLOUDINARY_BASE = "https://res.cloudinary.com/drscamscp/image/upload/q_aut
 // GET ALL PRODUCTS
 router.get('/', async (req, res) => {
     try {
-        const dbProducts = await Product.find();
+        let dbProducts = [];
+        if (mongoose.connection.readyState === 1) {
+            dbProducts = await Product.find().maxTimeMS(2000);
+        } else {
+            console.warn("[Backend]: Database is not connected. Serving static fallback products instantly.");
+        }
 
         const staticProducts = [
             { id: 1, name: "Fresh Organic Bananas", category: "Fruits", price: 80, originalPrice: 100, image: CLOUDINARY_BASE + "bananas.png", rating: 4.8, reviews: 120, badge: "Bestseller" },
