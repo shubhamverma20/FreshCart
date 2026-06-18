@@ -16,7 +16,24 @@ const userSchema = new mongoose.Schema(
         },
         password: {
             type: String,
-            required: true
+            // Not required for social/Firebase users
+        },
+        profilePicture: {
+            type: String,
+            default: ''
+        },
+        provider: {
+            type: String,
+            enum: ['local', 'google', 'facebook', 'firebase'],
+            default: 'local'
+        },
+        firebaseUid: {
+            type: String,
+            default: ''
+        },
+        lastLogin: {
+            type: Date,
+            default: Date.now
         },
         isVerified: {
             type: Boolean,

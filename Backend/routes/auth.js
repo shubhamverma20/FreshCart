@@ -14,4 +14,7 @@ router.post('/otp/request', authController.requestOTP);
 // Confirm Email Verification OTP
 router.post('/otp/verify', authController.verifyOTP);
 
+// Firebase Social Login Sync (Google / Facebook)
+router.post('/firebase', authController.firebaseSync);
+
 module.exports = router;

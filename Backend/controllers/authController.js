@@ -264,3 +264,68 @@ exports.verifyOTP = async (req, res) => {
     res.status(500).json({ message: 'Something went wrong' });
   }
 };
+
+/**
+ * Firebase Social Login Sync
+ * Creates or updates a user record after successful Firebase authentication.
+ */
+exports.firebaseSync = async (req, res) => {
+  console.log("[Auth Controller] Processing firebaseSync request.");
+  try {
+    const { name, email, profilePicture, provider, firebaseUid } = req.body;
+
+    if (!email || !name) {
+      return res.status(400).json({ message: 'Name and email are required' });
+    }
+
+    const lastLogin = new Date();
+
+    // Mock mode when DB is offline
+    if (mongoose.connection.readyState !== 1) {
+      console.warn("[Auth Controller] Database is offline. Running in Mock Mode for firebaseSync.");
+      const token = jwt.sign({ id: 'mock-firebase-user' }, process.env.JWT_SECRET || 'supersecret123', { expiresIn: '7d' });
+      return res.status(200).json({
+        message: 'Firebase sync successful (Mock Mode)',
+        token,
+        user: { name, email, profilePicture, provider, firebaseUid, isVerified: true, lastLogin }
+      });
+    }
+
+    // Upsert: create if not exists, update if exists
+    const user = await User.findOneAndUpdate(
+      { email },
+      {
+        $set: {
+          name,
+          profilePicture: profilePicture || '',
+          provider: provider || 'firebase',
+          firebaseUid: firebaseUid || '',
+          isVerified: true,
+          lastLogin
+        },
+        $setOnInsert: { password: '' }
+      },
+      { upsert: true, new: true, setDefaultsOnInsert: true }
+    );
+
+    console.log(`[Auth Controller] Firebase user synced: ${email} (${user._id})`);
+
+    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '7d' });
+    res.status(200).json({
+      message: 'Firebase sync successful',
+      token,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        profilePicture: user.profilePicture,
+        provider: user.provider,
+        isVerified: user.isVerified,
+        lastLogin: user.lastLogin
+      }
+    });
+  } catch (err) {
+    console.error("[Auth Controller] Firebase sync error:", err);
+    res.status(500).json({ message: 'Firebase sync failed' });
+  }
+};
