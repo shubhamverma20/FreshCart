@@ -2,6 +2,8 @@ const Order = require('../models/Order');
 const User = require('../models/User');
 const mongoose = require('mongoose');
 const { sendOrderConfirmationEmail } = require('../services/emailService');
+const Razorpay = require('razorpay');
+const crypto = require('crypto');
 
 // Helper to validate email format
 function isValidEmail(email) {
@@ -76,6 +78,65 @@ exports.createCashfreeOrder = async (req, res) => {
   } catch (error) {
     console.error('[Cashfree] Create Order Error:', error);
     res.status(500).json({ message: 'Internal Server Error' });
+  }
+};
+
+/**
+ * Create Razorpay Order
+ */
+exports.createRazorpayOrder = async (req, res) => {
+  try {
+    const { orderAmount } = req.body;
+    
+    if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
+      console.warn("[Razorpay] Missing API Keys.");
+      return res.status(500).json({ message: "Razorpay keys not configured." });
+    }
+
+    const instance = new Razorpay({
+      key_id: process.env.RAZORPAY_KEY_ID,
+      key_secret: process.env.RAZORPAY_KEY_SECRET,
+    });
+
+    const options = {
+      amount: orderAmount * 100, // Razorpay works in paise
+      currency: "INR",
+      receipt: "receipt_" + Date.now(),
+    };
+
+    const order = await instance.orders.create(options);
+    res.status(200).json({ 
+      success: true, 
+      order, 
+      key_id: process.env.RAZORPAY_KEY_ID 
+    });
+  } catch (error) {
+    console.error('[Razorpay] Create Order Error:', error);
+    res.status(500).json({ message: 'Internal Server Error', error: error.message });
+  }
+};
+
+/**
+ * Verify Razorpay Payment
+ */
+exports.verifyRazorpayPayment = async (req, res) => {
+  try {
+    const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
+
+    const sign = razorpay_order_id + "|" + razorpay_payment_id;
+    const expectedSign = crypto
+      .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET)
+      .update(sign.toString())
+      .digest("hex");
+
+    if (razorpay_signature === expectedSign) {
+      return res.status(200).json({ success: true, message: "Payment verified successfully" });
+    } else {
+      return res.status(400).json({ success: false, message: "Invalid payment signature" });
+    }
+  } catch (error) {
+    console.error("[Razorpay] Verify Payment Error:", error);
+    res.status(500).json({ message: "Internal Server Error" });
   }
 };
 

@@ -8,6 +8,10 @@ router.post('/place', orderController.placeOrder);
 // Route to create a Cashfree payment session
 router.post('/create-cashfree-order', orderController.createCashfreeOrder);
 
+// Routes for Razorpay integration
+router.post('/create-razorpay-order', orderController.createRazorpayOrder);
+router.post('/verify-razorpay-payment', orderController.verifyRazorpayPayment);
+
 // Route to get all orders (admin panel)
 router.get('/', orderController.getOrders);
 

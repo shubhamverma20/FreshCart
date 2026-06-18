@@ -105,59 +105,82 @@ export default function CartCheckout() {
         return;
       }
 
-      // If Card or UPI, trigger Cashfree Gateway
-      const cfRes = await fetch(`${apiBase}/api/orders/create-cashfree-order`, {
+      // If Card or UPI, trigger Razorpay Gateway
+      const rzpRes = await fetch(`${apiBase}/api/orders/create-razorpay-order`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          orderAmount: total,
-          customerEmail: email,
-          customerPhone: phone.replace(/[^0-9]/g, ''),
-          customerName: `${firstName} ${lastName}`
+          orderAmount: total
         })
       });
 
-      const cfData = await cfRes.json();
-      if (!cfRes.ok) {
-        showAlert(cfData.message || "Failed to initialize payment gateway.", "error");
+      const rzpData = await rzpRes.json();
+      if (!rzpRes.ok) {
+        showAlert(rzpData.message || "Failed to initialize payment gateway.", "error");
+        setLoading(false);
         return;
       }
 
-      // Initialize Cashfree
-      const cashfree = await window.Cashfree({
-        mode: "sandbox" // Use sandbox for testing
-      });
+      const options = {
+        key: rzpData.key_id,
+        amount: rzpData.order.amount,
+        currency: rzpData.order.currency,
+        name: "FreshCart",
+        description: "Grocery Order Payment",
+        order_id: rzpData.order.id,
+        handler: async function (response) {
+          try {
+            // Verify payment
+            const verifyRes = await fetch(`${apiBase}/api/orders/verify-razorpay-payment`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature
+              })
+            });
 
-      const checkoutOptions = {
-        paymentSessionId: cfData.payment_session_id,
-        redirectTarget: "_modal",
+            const verifyData = await verifyRes.json();
+            if (verifyRes.ok && verifyData.success) {
+              // Payment verified, place final order
+              const placeRes = await fetch(`${apiBase}/api/orders/place`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+              });
+              
+              const placeData = await placeRes.json();
+              if (placeRes.ok) {
+                setSuccessOrder(placeData.order);
+                clearCart();
+              } else {
+                showAlert("Payment succeeded but order placement failed. Please contact support.", "error");
+              }
+            } else {
+              showAlert(verifyData.message || "Payment verification failed.", "error");
+            }
+          } catch (err) {
+            console.error("Verification error:", err);
+            showAlert("An error occurred during payment verification.", "error");
+          }
+        },
+        prefill: {
+          name: `${firstName} ${lastName}`,
+          email: email,
+          contact: phone
+        },
+        theme: {
+          color: "#10b981"
+        }
       };
 
-      cashfree.checkout(checkoutOptions).then(async (result) => {
-        if (result.error) {
-          console.error("Cashfree Error:", result.error);
-          showAlert(result.error.message || "Payment failed or was cancelled.", "error");
-        } else if (result.paymentDetails) {
-          // Payment is successful, verify and place the final order
-          console.log("Payment completed successfully:", result.paymentDetails);
-          
-          const placeRes = await fetch(`${apiBase}/api/orders/place`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-          });
-          
-          const placeData = await placeRes.json();
-          if (placeRes.ok) {
-            setSuccessOrder(placeData.order);
-            clearCart();
-          } else {
-            showAlert("Payment succeeded but order placement failed. Please contact support.", "error");
-          }
-        } else if (result.redirect) {
-           console.log("Payment will be redirected");
-        }
+      const rzp = new window.Razorpay(options);
+      rzp.on('payment.failed', function (response) {
+        console.error("Razorpay Error:", response.error);
+        showAlert(response.error.description || "Payment failed or was cancelled.", "error");
       });
+      rzp.open();
 
     } catch (err) {
       console.error("[Checkout] Order placement failed:", err);
