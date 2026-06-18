@@ -18,9 +18,11 @@ const allowedOrigins = [
   'http://localhost:5500',
   'http://localhost:5501',      // Live Server Default
   'http://localhost:1111',      // Your custom backend port
+  'http://localhost:5173',      // Vite React client
   'http://127.0.0.1:5500',
-  'http://127.0.0.1:5501',      // 🔥 THIS WAS MISSING - Fixed this
+  'http://127.0.0.1:5501',      
   'http://127.0.0.1:1111',
+  'http://127.0.0.1:5173',      // Vite React client loopback
   'https://freshcart-grocery-delivery.vercel.app',
   ...(process.env.CLIENT_URL ? [process.env.CLIENT_URL] : []) 
 ].filter(Boolean);
@@ -35,7 +37,7 @@ app.use(cors({
     }
   },
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE'] // 👈 Yeh line add kar dijiye
+  methods: ['GET', 'POST', 'PUT', 'DELETE'] 
 }));
 // Routes
 app.get('/', (req, res) => {

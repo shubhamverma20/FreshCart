@@ -211,26 +211,30 @@
                     <div class="form-row">
                         <div class="form-group">
                             <label class="form-label">First Name</label>
-                            <input type="text" class="form-input" placeholder="John">
+                            <input type="text" id="firstNameInput" class="form-input" placeholder="John" required>
                         </div>
                         <div class="form-group">
                             <label class="form-label">Last Name</label>
-                            <input type="text" class="form-input" placeholder="Doe">
+                            <input type="text" id="lastNameInput" class="form-input" placeholder="Doe" required>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Email Address (For Confirmation)</label>
+                            <input type="email" id="emailInput" class="form-input" placeholder="email@domain.com" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Phone Number</label>
+                            <input type="tel" id="phoneInput" class="form-input" placeholder="+91 9876543210" required>
                         </div>
                     </div>
                     <div class="form-group">
                         <label class="form-label">Full Address / Flat no.</label>
-                        <input type="text" class="form-input" placeholder="123 Shopping Street, Area Name">
+                        <input type="text" id="addressInput" class="form-input" placeholder="123 Shopping Street, Area Name" required>
                     </div>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label class="form-label">Phone Number</label>
-                            <input type="text" class="form-input" placeholder="+91 9876543210">
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">Pin Code</label>
-                            <input type="text" class="form-input" placeholder="400001">
-                        </div>
+                    <div class="form-group" style="max-width: 50%;">
+                        <label class="form-label">Pin Code</label>
+                        <input type="text" id="pincodeInput" class="form-input" placeholder="400001" required>
                     </div>
                 </div>
 
@@ -295,7 +299,10 @@
                         <span id="summaryTotal">₹0</span>
                     </div>
 
-                    <button class="btn-primary" style="width: 100%; margin-top: 20px; font-size: 16px; padding: 16px;" onclick="placeOrder()">Place Order</button>
+                    <!-- Alert message container -->
+                    <div id="checkoutAlertContainer" style="display: none; padding: 12px; border-radius: 8px; font-size: 14px; margin-top: 15px; margin-bottom: 5px; font-weight: 500; text-align: left;"></div>
+
+                    <button id="placeOrderBtn" class="btn-primary" style="width: 100%; margin-top: 20px; font-size: 16px; padding: 16px;" onclick="placeOrder()">Place Order</button>
                 </div>
             </div>
         </div>
@@ -305,12 +312,37 @@
     <div class="success-overlay" id="successOverlay">
         <ion-icon name="checkmark-circle" class="success-icon"></ion-icon>
         <h1 style="font-size: 36px; margin-bottom: 10px; font-family: Outfit;">Order Placed Successfully!</h1>
-        <p style="color: var(--text-secondary); margin-bottom: 30px; font-size: 18px;">Your groceries are on the way. Order ID: #ORD-9824X</p>
+        <p id="orderIdDisplay" style="color: var(--text-secondary); margin-bottom: 30px; font-size: 18px;">Your groceries are on the way. Order ID: #ORD-9824X</p>
         <a href="delivery.html"><button class="btn-primary" style="padding: 14px 30px; font-size: 16px;">Track Your Order</button></a>
     </div>
 
     <script src="js/app.js"></script>
     <script>
+        const IS_PRODUCTION = window.location.hostname.includes('localhost') || 
+                              window.location.hostname.includes('127.0.0.1') ? false : true;
+        const PRODUCTION_API_URL = "https://freshcart-dewk.onrender.com"; 
+        const API_BASE = IS_PRODUCTION ? PRODUCTION_API_URL : 'http://localhost:5000';
+
+        const alertContainer = document.getElementById('checkoutAlertContainer');
+
+        function showAlert(message, type) {
+            alertContainer.style.display = 'block';
+            alertContainer.innerText = message;
+            if (type === 'success') {
+                alertContainer.style.background = '#d1fae5';
+                alertContainer.style.color = '#065f46';
+                alertContainer.style.border = '1px solid #10b981';
+            } else {
+                alertContainer.style.background = '#fee2e2';
+                alertContainer.style.color = '#991b1b';
+                alertContainer.style.border = '1px solid #ef4444';
+            }
+        }
+
+        function hideAlert() {
+            alertContainer.style.display = 'none';
+        }
+
         // Custom logic for checkout page
         document.addEventListener('DOMContentLoaded', () => {
             const storedCart = JSON.parse(localStorage.getItem('cart')) || [];
@@ -350,6 +382,21 @@
             document.getElementById('summaryTax').innerText = `₹${tax}`;
             document.getElementById('summaryTotal').innerText = `₹${total}`;
 
+            // Pre-fill user details if logged in
+            const loggedInUser = JSON.parse(localStorage.getItem('user'));
+            if (loggedInUser) {
+                if (loggedInUser.email) {
+                    document.getElementById('emailInput').value = loggedInUser.email;
+                }
+                if (loggedInUser.name) {
+                    const nameParts = loggedInUser.name.trim().split(' ');
+                    document.getElementById('firstNameInput').value = nameParts[0] || '';
+                    if (nameParts.length > 1) {
+                        document.getElementById('lastNameInput').value = nameParts.slice(1).join(' ');
+                    }
+                }
+            }
+
             // Add highlight on selected payment row
             const paymentOptions = document.querySelectorAll('.payment-method');
             paymentOptions.forEach(opt => {
@@ -360,11 +407,99 @@
             });
         });
 
-        function placeOrder() {
-            // Show Success UI
-            document.getElementById('successOverlay').classList.add('show');
-            // Clear cart memory
-            localStorage.removeItem('cart');
+        async function placeOrder() {
+            hideAlert();
+
+            const firstName = document.getElementById('firstNameInput').value.trim();
+            const lastName = document.getElementById('lastNameInput').value.trim();
+            const email = document.getElementById('emailInput').value.trim();
+            const phone = document.getElementById('phoneInput').value.trim();
+            const address = document.getElementById('addressInput').value.trim();
+            const pincode = document.getElementById('pincodeInput').value.trim();
+            const paymentMethod = document.querySelector('input[name="payment"]:checked')?.value || 'upi';
+
+            // Validations
+            if (!firstName || !lastName || !email || !phone || !address || !pincode) {
+                showAlert("Please fill out all the delivery details.", "error");
+                return;
+            }
+
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(email)) {
+                showAlert("Please enter a valid email address.", "error");
+                return;
+            }
+
+            const storedCart = JSON.parse(localStorage.getItem('cart')) || [];
+            if (storedCart.length === 0) {
+                showAlert("Your cart is empty. Please add items to your cart first.", "error");
+                return;
+            }
+
+            // Calculations
+            let subtotal = 0;
+            storedCart.forEach(item => {
+                subtotal += item.price * item.quantity;
+            });
+            const tax = Math.round(subtotal * 0.05);
+            const delivery = 40;
+            const totalPrice = subtotal + tax + delivery;
+
+            // Prepare API payload
+            const loggedInUser = JSON.parse(localStorage.getItem('user'));
+            const userId = loggedInUser ? loggedInUser.id : null;
+
+            const items = storedCart.map(item => ({
+                name: item.name,
+                price: Number(item.price),
+                quantity: Number(item.quantity)
+            }));
+
+            const shippingAddress = `${firstName} ${lastName}, ${address}, Pin: ${pincode}, Phone: ${phone}`;
+
+            const payload = {
+                userId,
+                email,
+                items,
+                totalPrice,
+                shippingAddress,
+                paymentMethod
+            };
+
+            // Loading state
+            const btn = document.getElementById('placeOrderBtn');
+            btn.disabled = true;
+            const originalBtnText = btn.innerText;
+            btn.innerText = "Placing Order...";
+
+            try {
+                const res = await fetch(`${API_BASE}/api/orders/place`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await res.json();
+                if (res.ok) {
+                    // Update overlay text
+                    document.getElementById('orderIdDisplay').innerHTML = `Your groceries are on the way. Order ID: <strong>#${data.order.orderId}</strong>`;
+                    // Clear cart memory
+                    localStorage.removeItem('cart');
+                    // Show Success UI
+                    document.getElementById('successOverlay').classList.add('show');
+                } else {
+                    showAlert(data.message || "Failed to place order. Please try again.", "error");
+                    btn.disabled = false;
+                    btn.innerText = originalBtnText;
+                }
+            } catch (err) {
+                console.error("[Checkout] Order placement failed:", err);
+                showAlert("Network connection error. Check if the server is running.", "error");
+                btn.disabled = false;
+                btn.innerText = originalBtnText;
+            }
         }
     </script>
 </body>

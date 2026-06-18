@@ -12,13 +12,19 @@ try {
 }
 
 // Configurable sender details
-const SENDER_EMAIL = process.env.BREVO_SENDER_EMAIL || 'no-reply@freshcart.com';
-const SENDER_NAME = process.env.BREVO_SENDER_NAME || 'FreshCart';
+const SENDER_EMAIL = process.env.SENDER_EMAIL || 'no-reply@freshcart.com';
+const SENDER_NAME = process.env.SENDER_NAME || 'FreshCart';
 
 /**
  * Generic helper function to send transactional emails via Brevo
  */
 async function sendEmail({ toEmail, toName, subject, htmlContent }) {
+  console.log(`[Email Service] Preparing transaction email request:
+  - Recipient: ${toEmail}
+  - Name: ${toName || 'None'}
+  - Subject: ${subject}
+  - Sender: ${SENDER_NAME} <${SENDER_EMAIL}>`);
+
   if (!process.env.BREVO_API_KEY || process.env.BREVO_API_KEY === 'your_api_key') {
     console.warn(`[Email Service] Warning: BREVO_API_KEY is not defined. Email to ${toEmail} was not sent. Subject: ${subject}`);
     return { success: false, message: 'API key not configured' };
@@ -30,16 +36,23 @@ async function sendEmail({ toEmail, toName, subject, htmlContent }) {
   }
 
   try {
-    const data = await brevoClient.transactionalEmails.sendTransacEmail({
+    const payload = {
       subject: subject,
       sender: { name: SENDER_NAME, email: SENDER_EMAIL },
       to: [{ email: toEmail, name: toName || '' }],
       htmlContent: htmlContent
-    });
-    console.log(`[Email Service] Email sent successfully to ${toEmail}. Message ID: ${data.messageId || JSON.stringify(data)}`);
-    return { success: true, messageId: data.messageId };
+    };
+    
+    console.log("[Email Service] Dispatching Brevo API request payload:", JSON.stringify({ ...payload, htmlContent: "[TRUNCATED_HTML]" }, null, 2));
+
+    const data = await brevoClient.transactionalEmails.sendTransacEmail(payload);
+    console.log(`[Email Service] Brevo API Response success:`, JSON.stringify(data, null, 2));
+    return { success: true, messageId: data.messageId || data.body?.messageId };
   } catch (error) {
-    console.error(`[Email Service] Failed to send email to ${toEmail}:`, error.message || error);
+    console.error(`[Email Service] Brevo API Error occurred:`, error.message || error);
+    if (error.response && error.response.body) {
+      console.error("[Email Service] Brevo API Response body details:", JSON.stringify(error.response.body, null, 2));
+    }
     return { success: false, error: error.message || error };
   }
 }

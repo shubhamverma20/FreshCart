@@ -141,38 +141,273 @@
     <main class="main-content">
         <div class="auth-container">
             <div class="auth-card fade-in">
-                <h1 class="auth-title">Welcome Back</h1>
-                <p class="auth-subtitle">Log in to track your orders and fast checkout.</p>
+                <h1 class="auth-title" id="authTitle">Welcome Back</h1>
+                <p class="auth-subtitle" id="authSubtitle">Log in to track your orders and fast checkout.</p>
 
-                <form action="index.html">
-                    <div class="form-group">
-                        <label class="form-label">Email or Phone Number</label>
-                        <input type="text" class="form-input" placeholder="e.g. 9876543210 or email@domain.com" required>
+                <form id="authForm">
+                    <div id="nameGroup" class="form-group" style="display: none;">
+                        <label class="form-label">Full Name</label>
+                        <input type="text" id="nameInput" class="form-input" placeholder="e.g. John Doe">
                     </div>
                     <div class="form-group">
+                        <label class="form-label" id="emailLabel">Email Address</label>
+                        <input type="email" id="emailInput" class="form-input" placeholder="email@domain.com" required>
+                    </div>
+                    <div class="form-group" id="passwordGroup">
                         <label class="form-label">Password</label>
-                        <input type="password" class="form-input" placeholder="••••••••" required>
+                        <input type="password" id="passwordInput" class="form-input" placeholder="••••••••" required>
                     </div>
-                    <button type="submit" class="btn-primary btn-auth">Log In Now</button>
+
+                    <!-- Alert message container -->
+                    <div id="alertContainer" style="display: none; padding: 12px; border-radius: 8px; font-size: 14px; margin-bottom: 20px; font-weight: 500; text-align: left;"></div>
+
+                    <button type="submit" id="submitBtn" class="btn-primary btn-auth">Log In Now</button>
                 </form>
 
                 <div class="divider">OR CONTINUE WITH</div>
 
                 <div class="social-login">
-                    <button class="btn-social">
+                    <button class="btn-social" type="button">
                         <ion-icon name="logo-google" style="color: #EA4335;"></ion-icon> Google
                     </button>
-                    <button class="btn-social">
-                        <ion-icon name="phone-portrait-outline" style="color: var(--primary-color);"></ion-icon> OTP
+                    <button class="btn-social" type="button" onclick="toggleAuthMode(null)">
+                        <ion-icon name="person-add-outline" style="color: var(--primary-color);"></ion-icon> Toggle Mode
                     </button>
                 </div>
 
-                <p style="margin-top: 30px; font-size: 14px; color: var(--text-secondary);">
-                    Don't have an account? <a href="#" style="color: var(--primary-color); font-weight: 600;">Sign up</a>
+                <p style="margin-top: 30px; font-size: 14px; color: var(--text-secondary);" id="toggleText">
+                    Don't have an account? <a href="#" onclick="toggleAuthMode(event)" style="color: var(--primary-color); font-weight: 600;" id="toggleLink">Sign up</a>
                 </p>
             </div>
         </div>
     </main>
 
+    <script>
+        const IS_PRODUCTION = window.location.hostname.includes('localhost') || 
+                              window.location.hostname.includes('127.0.0.1') ? false : true;
+        const PRODUCTION_API_URL = "https://freshcart-dewk.onrender.com"; 
+        const API_BASE = IS_PRODUCTION ? PRODUCTION_API_URL : 'http://localhost:5000';
+
+        let isSignUp = false;
+        let isOTPVerification = false;
+
+        const authForm = document.getElementById('authForm');
+        const nameGroup = document.getElementById('nameGroup');
+        const passwordGroup = document.getElementById('passwordGroup');
+        const nameInput = document.getElementById('nameInput');
+        const emailInput = document.getElementById('emailInput');
+        const passwordInput = document.getElementById('passwordInput');
+        const submitBtn = document.getElementById('submitBtn');
+        const authTitle = document.getElementById('authTitle');
+        const authSubtitle = document.getElementById('authSubtitle');
+        const alertContainer = document.getElementById('alertContainer');
+        const toggleText = document.getElementById('toggleText');
+
+        function showAlert(message, type) {
+            alertContainer.style.display = 'block';
+            alertContainer.innerText = message;
+            if (type === 'success') {
+                alertContainer.style.background = '#d1fae5';
+                alertContainer.style.color = '#065f46';
+                alertContainer.style.border = '1px solid #10b981';
+            } else {
+                alertContainer.style.background = '#fee2e2';
+                alertContainer.style.color = '#991b1b';
+                alertContainer.style.border = '1px solid #ef4444';
+            }
+        }
+
+        function hideAlert() {
+            alertContainer.style.display = 'none';
+        }
+
+        function toggleAuthMode(event) {
+            if (event) event.preventDefault();
+            hideAlert();
+            isSignUp = !isSignUp;
+            isOTPVerification = false;
+            
+            // Reset fields
+            emailInput.type = "email";
+            emailInput.placeholder = "email@domain.com";
+            document.getElementById('emailLabel').innerText = "Email Address";
+            passwordGroup.style.display = "block";
+            passwordInput.required = true;
+
+            if (isSignUp) {
+                authTitle.innerText = "Create Account";
+                authSubtitle.innerText = "Sign up today for fresh grocery deliveries.";
+                nameGroup.style.display = "block";
+                nameInput.required = true;
+                submitBtn.innerText = "Sign Up Now";
+                toggleText.innerHTML = `Already have an account? <a href="#" onclick="toggleAuthMode(event)" style="color: var(--primary-color); font-weight: 600;">Log in</a>`;
+            } else {
+                authTitle.innerText = "Welcome Back";
+                authSubtitle.innerText = "Log in to track your orders and fast checkout.";
+                nameGroup.style.display = "none";
+                nameInput.required = false;
+                submitBtn.innerText = "Log In Now";
+                toggleText.innerHTML = `Don't have an account? <a href="#" onclick="toggleAuthMode(event)" style="color: var(--primary-color); font-weight: 600;">Sign up</a>`;
+            }
+        }
+
+        function switchToOTPView(email) {
+            hideAlert();
+            isOTPVerification = true;
+            authTitle.innerText = "Verify Your Email";
+            authSubtitle.innerText = `Enter the 6-digit OTP code sent to: ${email}`;
+            nameGroup.style.display = "none";
+            nameInput.required = false;
+            passwordGroup.style.display = "none";
+            passwordInput.required = false;
+            
+            // Re-label email input to OTP code input
+            emailInput.value = "";
+            emailInput.type = "text";
+            emailInput.placeholder = "e.g. 123456";
+            document.getElementById('emailLabel').innerText = "Verification OTP";
+            
+            submitBtn.innerText = "Verify OTP Code";
+            toggleText.innerHTML = `<a href="#" onclick="resendOTP('${email}')" style="color: var(--primary-color); font-weight: 600;">Resend OTP Code</a>`;
+        }
+
+        async function resendOTP(email) {
+            showAlert("Resending OTP code...", "success");
+            try {
+                const res = await fetch(`${API_BASE}/api/auth/otp/request`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email })
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    showAlert("A new OTP code has been sent to your email.", "success");
+                } else {
+                    showAlert(data.message || "Failed to resend OTP.", "error");
+                }
+            } catch (err) {
+                showAlert("Network error resending verification code.", "error");
+            }
+        }
+
+        authForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            hideAlert();
+            
+            const emailValue = emailInput.value.trim();
+            
+            // Set Loading state
+            submitBtn.disabled = true;
+            const originalBtnText = submitBtn.innerText;
+            submitBtn.innerText = "Processing...";
+            
+            try {
+                if (isOTPVerification) {
+                    // OTP confirm submission flow
+                    const otpCode = emailInput.value.trim();
+                    const storedEmail = localStorage.getItem('signup_email');
+                    
+                    const res = await fetch(`${API_BASE}/api/auth/otp/verify`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ email: storedEmail, otp: otpCode })
+                    });
+                    
+                    const data = await res.json();
+                    if (res.ok) {
+                        showAlert("Email verified successfully! Redirecting...", "success");
+                        localStorage.removeItem('signup_email');
+                        
+                        // Update verified status in local storage
+                        const userStr = localStorage.getItem('user');
+                        if (userStr) {
+                            try {
+                                const userObj = JSON.parse(userStr);
+                                userObj.isVerified = true;
+                                localStorage.setItem('user', JSON.stringify(userObj));
+                            } catch (e) {
+                                console.error("Error updating user verified status:", e);
+                            }
+                        }
+                        
+                        setTimeout(() => {
+                            window.location.href = "index.html";
+                        }, 2000);
+                    } else {
+                        showAlert(data.message || "Invalid or expired OTP code.", "error");
+                        submitBtn.disabled = false;
+                        submitBtn.innerText = originalBtnText;
+                    }
+                } else if (isSignUp) {
+                    // Sign up flow
+                    const nameValue = nameInput.value.trim();
+                    const passwordValue = passwordInput.value;
+                    
+                    const res = await fetch(`${API_BASE}/api/auth/signup`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ name: nameValue, email: emailValue, password: passwordValue })
+                    });
+                    
+                    const data = await res.json();
+                    if (res.ok) {
+                        localStorage.setItem('token', data.token);
+                        localStorage.setItem('signup_email', emailValue);
+                        if (data.user) {
+                            localStorage.setItem('user', JSON.stringify(data.user));
+                        }
+                        showAlert("Registration successful! Triggering verification code...", "success");
+                        
+                        // Request OTP code
+                        const otpRes = await fetch(`${API_BASE}/api/auth/otp/request`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ email: emailValue })
+                        });
+                        
+                        if (otpRes.ok) {
+                            switchToOTPView(emailValue);
+                        } else {
+                            showAlert("Registration complete, but failed to send verification OTP automatically.", "error");
+                        }
+                    } else {
+                        showAlert(data.message || "Registration failed.", "error");
+                    }
+                    submitBtn.disabled = false;
+                    submitBtn.innerText = originalBtnText;
+                } else {
+                    // Login flow
+                    const passwordValue = passwordInput.value;
+                    
+                    const res = await fetch(`${API_BASE}/api/auth/login`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ email: emailValue, password: passwordValue })
+                    });
+                    
+                    const data = await res.json();
+                    if (res.ok) {
+                        localStorage.setItem('token', data.token);
+                        if (data.user) {
+                            localStorage.setItem('user', JSON.stringify(data.user));
+                        }
+                        showAlert("Login successful! Redirecting...", "success");
+                        setTimeout(() => {
+                            window.location.href = "index.html";
+                        }, 1500);
+                    } else {
+                        showAlert(data.message || "Login failed.", "error");
+                    }
+                    submitBtn.disabled = false;
+                    submitBtn.innerText = originalBtnText;
+                }
+            } catch (err) {
+                console.error("[Frontend Auth] Fetch error:", err);
+                showAlert("Network connection error. Check if backend is running.", "error");
+                submitBtn.disabled = false;
+                submitBtn.innerText = originalBtnText;
+            }
+        });
+    </script>
 </body>
 </html>
