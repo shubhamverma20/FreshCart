@@ -1,9 +1,37 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 
 export default function DeliveryTracking() {
+  const { apiBase } = useAuth();
   const [searchParams] = useSearchParams();
   const orderId = searchParams.get('orderId') || 'ORD-9824X';
+  const [order, setOrder] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchOrder = async () => {
+      try {
+        const res = await fetch(`${apiBase}/api/orders/${orderId}`);
+        if (res.ok) {
+          const data = await res.json();
+          setOrder(data);
+        }
+      } catch (err) {
+        console.error("Error fetching order tracking:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchOrder();
+    
+    // Poll every 5 seconds for live updates
+    const interval = setInterval(fetchOrder, 5000);
+    return () => clearInterval(interval);
+  }, [apiBase, orderId]);
+
+  const currentStatus = order?.status || 'Processing';
 
   return (
     <main className="main-content container">
@@ -315,9 +343,15 @@ export default function DeliveryTracking() {
         <div>
           <div className="info-card">
             <div className="eta-box">
-              <div style={{ fontSize: '14px', opacity: 0.9 }}>Estimated Delivery</div>
-              <div className="eta-time">12 Mins</div>
-              <div style={{ fontSize: '14px', opacity: 0.9 }}>By 10:45 AM</div>
+              <div style={{ fontSize: '14px', opacity: 0.9 }}>
+                {currentStatus === 'Delivered' ? 'Delivery Status' : 'Estimated Delivery'}
+              </div>
+              <div className="eta-time">
+                {currentStatus === 'Delivered' ? 'Arrived!' : '12 Mins'}
+              </div>
+              <div style={{ fontSize: '14px', opacity: 0.9 }}>
+                {currentStatus === 'Delivered' ? 'Successfully Delivered' : 'By 10:45 AM'}
+              </div>
             </div>
 
             <div className="driver-info">
@@ -352,30 +386,32 @@ export default function DeliveryTracking() {
                   <ion-icon name="checkmark"></ion-icon>
                 </div>
                 <div className="timeline-title">Order Confirmed</div>
-                <div className="timeline-time">10:24 AM</div>
+                <div className="timeline-time">Pending Packaging</div>
               </div>
-              <div className="timeline-item completed">
+              <div className={`timeline-item ${currentStatus === 'Out for Delivery' || currentStatus === 'Delivered' ? 'completed' : 'active'}`}>
                 <div className="timeline-dot">
-                  <ion-icon name="checkmark"></ion-icon>
+                  {currentStatus === 'Processing' ? <ion-icon name="time"></ion-icon> : <ion-icon name="checkmark"></ion-icon>}
                 </div>
-                <div className="timeline-title">Order Packed</div>
-                <div className="timeline-time">10:28 AM</div>
+                <div className="timeline-title" style={{ color: currentStatus === 'Processing' ? 'var(--primary-color)' : '' }}>Order Packed & Processing</div>
+                <div className="timeline-time">At Store</div>
               </div>
-              <div className="timeline-item active">
+              <div className={`timeline-item ${currentStatus === 'Delivered' ? 'completed' : currentStatus === 'Out for Delivery' ? 'active' : ''}`}>
                 <div className="timeline-dot">
-                  <ion-icon name="bicycle"></ion-icon>
+                  {currentStatus === 'Out for Delivery' ? <ion-icon name="bicycle"></ion-icon> : (currentStatus === 'Delivered' ? <ion-icon name="checkmark"></ion-icon> : '')}
                 </div>
-                <div className="timeline-title" style={{ color: 'var(--primary-color)' }}>
+                <div className="timeline-title" style={{ color: currentStatus === 'Out for Delivery' ? 'var(--primary-color)' : (currentStatus !== 'Delivered' ? 'var(--text-secondary)' : '') }}>
                   Out for Delivery
                 </div>
-                <div className="timeline-time">10:32 AM</div>
+                <div className="timeline-time">{currentStatus === 'Out for Delivery' ? 'On the way' : 'Pending'}</div>
               </div>
-              <div className="timeline-item">
-                <div className="timeline-dot"></div>
-                <div className="timeline-title" style={{ color: 'var(--text-secondary)' }}>
+              <div className={`timeline-item ${currentStatus === 'Delivered' ? 'active' : ''}`}>
+                <div className="timeline-dot">
+                   {currentStatus === 'Delivered' ? <ion-icon name="home"></ion-icon> : ''}
+                </div>
+                <div className="timeline-title" style={{ color: currentStatus === 'Delivered' ? 'var(--primary-color)' : 'var(--text-secondary)' }}>
                   Delivered
                 </div>
-                <div className="timeline-time">Pending</div>
+                <div className="timeline-time">{currentStatus === 'Delivered' ? 'Completed' : 'Pending'}</div>
               </div>
             </div>
           </div>

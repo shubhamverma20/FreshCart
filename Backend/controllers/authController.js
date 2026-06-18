@@ -2,7 +2,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const mongoose = require('mongoose');
 const User = require('../models/User');
-const { sendWelcomeEmail, sendOTPEmail } = require('../services/emailService');
+const { sendWelcomeEmail, sendOTPEmail, sendPasswordResetEmail } = require('../services/emailService');
 
 // Helper to validate email format
 function isValidEmail(email) {
@@ -272,10 +272,10 @@ exports.verifyOTP = async (req, res) => {
 exports.firebaseSync = async (req, res) => {
   console.log("[Auth Controller] Processing firebaseSync request.");
   try {
-    const { name, email, profilePicture, provider, firebaseUid } = req.body;
+    const { name, email, phone, profilePicture, provider, firebaseUid } = req.body;
 
-    if (!email || !name) {
-      return res.status(400).json({ message: 'Name and email are required' });
+    if (!email && !phone) {
+      return res.status(400).json({ message: 'Email or phone number is required' });
     }
 
     const lastLogin = new Date();
@@ -287,16 +287,19 @@ exports.firebaseSync = async (req, res) => {
       return res.status(200).json({
         message: 'Firebase sync successful (Mock Mode)',
         token,
-        user: { name, email, profilePicture, provider, firebaseUid, isVerified: true, lastLogin }
+        user: { name, email, phone, profilePicture, provider, firebaseUid, isVerified: true, lastLogin }
       });
     }
 
-    // Upsert: create if not exists, update if exists
+    // Upsert: search by email (if exists) or phone (if exists)
+    const query = email ? { email } : { phone };
     const user = await User.findOneAndUpdate(
-      { email },
+      query,
       {
         $set: {
-          name,
+          name: name || (phone ? `User-${phone.slice(-4)}` : 'User'),
+          email: email || undefined,
+          phone: phone || undefined,
           profilePicture: profilePicture || '',
           provider: provider || 'firebase',
           firebaseUid: firebaseUid || '',
@@ -318,6 +321,7 @@ exports.firebaseSync = async (req, res) => {
         id: user._id,
         name: user.name,
         email: user.email,
+        phone: user.phone,
         profilePicture: user.profilePicture,
         provider: user.provider,
         isVerified: user.isVerified,
@@ -327,5 +331,87 @@ exports.firebaseSync = async (req, res) => {
   } catch (err) {
     console.error("[Auth Controller] Firebase sync error:", err);
     res.status(500).json({ message: 'Firebase sync failed' });
+  }
+};
+
+/**
+ * Request Password Reset (Send OTP)
+ */
+exports.requestPasswordReset = async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!isValidEmail(email)) {
+      return res.status(400).json({ message: 'A valid email address is required' });
+    }
+
+    if (mongoose.connection.readyState !== 1) {
+      return res.status(200).json({ message: 'Password reset OTP sent (Mock Mode)' });
+    }
+
+    const user = await User.findOne({ email });
+    if (!user) {
+      // Don't leak whether user exists for security reasons
+      return res.status(200).json({ message: 'If an account exists, an OTP will be sent' });
+    }
+
+    const otp = generateOTP();
+    user.otpCode = otp;
+    user.otpExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+    await user.save();
+
+    console.log(`[Auth Controller] Sending password reset OTP to ${email}`);
+    sendPasswordResetEmail(email, otp).catch(err => 
+      console.error("[Auth Controller] Background email error:", err.message)
+    );
+
+    res.status(200).json({ message: 'If an account exists, an OTP will be sent' });
+  } catch (err) {
+    console.error("[Auth Controller] Request reset error:", err);
+    res.status(500).json({ message: 'Failed to process request' });
+  }
+};
+
+/**
+ * Reset Password (Verify OTP and Hash New Password)
+ */
+exports.resetPassword = async (req, res) => {
+  try {
+    const { email, otp, newPassword } = req.body;
+
+    if (!email || !otp || !newPassword) {
+      return res.status(400).json({ message: 'Email, OTP, and new password are required' });
+    }
+    if (newPassword.length < 6) {
+      return res.status(400).json({ message: 'Password must be at least 6 characters long' });
+    }
+
+    if (mongoose.connection.readyState !== 1) {
+      return res.status(200).json({ message: 'Password reset successful (Mock Mode)' });
+    }
+
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(400).json({ message: 'Invalid request' });
+    }
+
+    if (user.otpCode !== otp.toString().trim()) {
+      return res.status(400).json({ message: 'Invalid verification code' });
+    }
+
+    if (new Date() > user.otpExpires) {
+      return res.status(400).json({ message: 'Verification code has expired' });
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 12);
+    user.password = hashedPassword;
+    user.otpCode = undefined;
+    user.otpExpires = undefined;
+    await user.save();
+
+    console.log(`[Auth Controller] Password reset successfully for: ${email}`);
+    res.status(200).json({ message: 'Password reset successful. You can now login.' });
+  } catch (err) {
+    console.error("[Auth Controller] Reset password error:", err);
+    res.status(500).json({ message: 'Failed to reset password' });
   }
 };

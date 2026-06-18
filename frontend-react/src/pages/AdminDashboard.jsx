@@ -151,6 +151,28 @@ export default function AdminDashboard() {
     }
   };
 
+  // Handle Order Status Update
+  const handleUpdateOrderStatus = async (orderId, newStatus) => {
+    try {
+      const res = await fetch(`${apiBase}/api/orders/${orderId}/status`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus })
+      });
+
+      if (res.ok) {
+        setPageAlert({ message: `Order #${orderId} status updated to ${newStatus}`, type: "success" });
+        // Update local state without refetching
+        setOrders(prev => prev.map(o => o.orderId === orderId ? { ...o, status: newStatus } : o));
+      } else {
+        setPageAlert({ message: "Failed to update status", type: "error" });
+      }
+    } catch (err) {
+      console.error(err);
+      setPageAlert({ message: "Network error updating status", type: "error" });
+    }
+  };
+
   // Auto-dismiss page alert
   useEffect(() => {
     if (pageAlert) {
@@ -163,7 +185,7 @@ export default function AdminDashboard() {
   const totalSales = orders.reduce((sum, order) => sum + (order.totalPrice || 0), 0);
   const activeOrdersCount = orders.filter(o => o.status === 'Processing' || o.status === 'Out for Delivery' || !o.status).length;
   // Out of stock calculation: products with price less than 20 or count static items that are out of stock (mocked as 8)
-  const outOfStockCount = products.filter(p => p.price <= 0).length || 8;
+  const outOfStockCount = products.filter(p => p.price <= 0).length;
 
   // Filter lists based on search bar
   const filteredProducts = products.filter(p => 
@@ -505,7 +527,7 @@ export default function AdminDashboard() {
           <div className="stat-card">
             <div className="stat-title">Total Sales (Today)</div>
             <div className="stat-value">
-              ₹{totalSales ? totalSales.toLocaleString() : '24,500'}{' '}
+              ₹{totalSales.toLocaleString()}{' '}
               <span className="stat-trend">
                 <ion-icon name="arrow-up"></ion-icon> 12%
               </span>
@@ -513,7 +535,7 @@ export default function AdminDashboard() {
           </div>
           <div className="stat-card">
             <div className="stat-title">Active Orders</div>
-            <div className="stat-value">{activeOrdersCount || 42}</div>
+            <div className="stat-value">{activeOrdersCount}</div>
           </div>
           <div className="stat-card">
             <div className="stat-title">Products Out of Stock</div>
@@ -572,15 +594,22 @@ export default function AdminDashboard() {
                           <span className={`badge-status ${statusClass}`}>{order.status || 'Processing'}</span>
                         </td>
                         <td>
-                          {order.status === 'Processing' ? (
-                            <a href="#" onClick={(e) => { e.preventDefault(); alert("Assigning delivery partner..."); }} style={{ color: 'var(--primary-color)', fontWeight: 600 }}>
-                              Assign Boy
-                            </a>
-                          ) : (
-                            <a href="#" onClick={(e) => { e.preventDefault(); navigate(`/delivery?orderId=${order.orderId}`); }} style={{ color: 'var(--text-secondary)' }}>
-                              Track
-                            </a>
-                          )}
+                          <select 
+                            value={order.status || 'Processing'} 
+                            onChange={(e) => handleUpdateOrderStatus(order.orderId, e.target.value)}
+                            style={{ 
+                              padding: '5px', 
+                              borderRadius: '6px', 
+                              border: '1px solid #ccc',
+                              fontSize: '12px',
+                              cursor: 'pointer',
+                              outline: 'none'
+                            }}
+                          >
+                            <option value="Processing">Processing</option>
+                            <option value="Out for Delivery">Out for Delivery</option>
+                            <option value="Delivered">Delivered</option>
+                          </select>
                         </td>
                       </tr>
                     );
@@ -707,6 +736,23 @@ export default function AdminDashboard() {
                           <span className={`badge-status ${statusClass}`}>{order.status || 'Processing'}</span>
                         </td>
                         <td>
+                          <select 
+                            value={order.status || 'Processing'} 
+                            onChange={(e) => handleUpdateOrderStatus(order.orderId, e.target.value)}
+                            style={{ 
+                              padding: '5px', 
+                              borderRadius: '6px', 
+                              border: '1px solid #ccc',
+                              fontSize: '12px',
+                              cursor: 'pointer',
+                              outline: 'none',
+                              marginRight: '8px'
+                            }}
+                          >
+                            <option value="Processing">Processing</option>
+                            <option value="Out for Delivery">Out for Delivery</option>
+                            <option value="Delivered">Delivered</option>
+                          </select>
                           <button 
                             className="btn-primary" 
                             style={{ padding: '6px 12px', fontSize: '12px' }}

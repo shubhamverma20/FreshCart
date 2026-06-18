@@ -222,8 +222,52 @@ async function sendOrderConfirmationEmail(userEmail, orderDetails) {
   return sendEmail({ toEmail, subject, htmlContent });
 }
 
+/**
+ * 4. Send Password Reset OTP Email
+ */
+async function sendPasswordResetEmail(userEmail, otp) {
+  const subject = `${otp} is your Password Reset Code 🔑`;
+  const htmlContent = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <style>
+        body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; background-color: #f9fafb; margin: 0; padding: 20px; color: #1f2937; }
+        .container { max-width: 500px; margin: 0 auto; background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05); border: 1px solid #e5e7eb; }
+        .header { background-color: #10b981; padding: 30px 20px; text-align: center; color: white; }
+        .header h1 { margin: 0; font-size: 24px; font-weight: 700; }
+        .content { padding: 40px 30px; text-align: center; line-height: 1.6; }
+        .content h2 { color: #111827; font-size: 20px; margin-top: 0; }
+        .content p { font-size: 15px; margin: 12px 0; color: #4b5563; }
+        .otp-box { display: inline-block; font-size: 36px; font-weight: 700; color: #10b981; background: #ecfdf5; border: 2px dashed #10b981; border-radius: 10px; padding: 15px 30px; letter-spacing: 5px; margin: 25px 0; }
+        .footer { background-color: #f3f4f6; padding: 20px; text-align: center; font-size: 13px; color: #9ca3af; border-top: 1px solid #e5e7eb; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>FreshCart Security</h1>
+        </div>
+        <div class="content">
+          <h2>Reset Your Password</h2>
+          <p>We received a request to reset the password for your FreshCart account. Please use the following OTP to reset your password. This code is valid for 10 minutes.</p>
+          <div class="otp-box">${otp}</div>
+          <p>If you did not request this, please ignore this email or contact support if you have concerns.</p>
+        </div>
+        <div class="footer">
+          <p>&copy; 2026 FreshCart Inc. All rights reserved.</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+  return sendEmail({ toEmail, subject, htmlContent });
+}
+
 module.exports = {
   sendWelcomeEmail,
   sendOTPEmail,
-  sendOrderConfirmationEmail
+  sendOrderConfirmationEmail,
+  sendPasswordResetEmail
 };

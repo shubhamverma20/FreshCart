@@ -88,21 +88,77 @@ export default function CartCheckout() {
     setLoading(true);
 
     try {
-      const res = await fetch(`${apiBase}/api/orders/place`, {
+      // If Cash on Delivery, place order directly
+      if (paymentMethod === 'cod') {
+        const res = await fetch(`${apiBase}/api/orders/place`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (res.ok) {
+          setSuccessOrder(data.order);
+          clearCart();
+        } else {
+          showAlert(data.message || "Failed to place order.", "error");
+        }
+        return;
+      }
+
+      // If Card or UPI, trigger Cashfree Gateway
+      const cfRes = await fetch(`${apiBase}/api/orders/create-cashfree-order`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(payload)
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          orderAmount: total,
+          customerEmail: email,
+          customerPhone: phone.replace(/[^0-9]/g, ''),
+          customerName: `${firstName} ${lastName}`
+        })
       });
 
-      const data = await res.json();
-      if (res.ok) {
-        setSuccessOrder(data.order);
-        clearCart(); // Empty the global cart state
-      } else {
-        showAlert(data.message || "Failed to place order. Please try again.", "error");
+      const cfData = await cfRes.json();
+      if (!cfRes.ok) {
+        showAlert(cfData.message || "Failed to initialize payment gateway.", "error");
+        return;
       }
+
+      // Initialize Cashfree
+      const cashfree = await window.Cashfree({
+        mode: "sandbox" // Use sandbox for testing
+      });
+
+      const checkoutOptions = {
+        paymentSessionId: cfData.payment_session_id,
+        redirectTarget: "_modal",
+      };
+
+      cashfree.checkout(checkoutOptions).then(async (result) => {
+        if (result.error) {
+          console.error("Cashfree Error:", result.error);
+          showAlert(result.error.message || "Payment failed or was cancelled.", "error");
+        } else if (result.paymentDetails) {
+          // Payment is successful, verify and place the final order
+          console.log("Payment completed successfully:", result.paymentDetails);
+          
+          const placeRes = await fetch(`${apiBase}/api/orders/place`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+          
+          const placeData = await placeRes.json();
+          if (placeRes.ok) {
+            setSuccessOrder(placeData.order);
+            clearCart();
+          } else {
+            showAlert("Payment succeeded but order placement failed. Please contact support.", "error");
+          }
+        } else if (result.redirect) {
+           console.log("Payment will be redirected");
+        }
+      });
+
     } catch (err) {
       console.error("[Checkout] Order placement failed:", err);
       showAlert("Network connection error. Check if the server is running.", "error");

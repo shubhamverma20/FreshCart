@@ -2,7 +2,9 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import {
   signInWithPopup,
   signOut,
-  onAuthStateChanged
+  onAuthStateChanged,
+  signInWithPhoneNumber,
+  RecaptchaVerifier
 } from 'firebase/auth';
 import { auth, googleProvider, facebookProvider } from '../firebase/config';
 
@@ -226,6 +228,121 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  /** Password Reset Flow */
+  const requestPasswordReset = async (email) => {
+    setLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/api/auth/password/request-reset`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Failed to request reset');
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: err.message };
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const resetPassword = async (email, otp, newPassword) => {
+    setLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/api/auth/password/reset`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, otp, newPassword })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Failed to reset password');
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: err.message };
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  /** Firebase Phone Authentication */
+  const setupRecaptcha = (containerId) => {
+    if (!window.recaptchaVerifier) {
+      window.recaptchaVerifier = new RecaptchaVerifier(auth, containerId, {
+        size: 'invisible',
+        callback: (response) => {
+          // reCAPTCHA solved
+        }
+      });
+    }
+    return window.recaptchaVerifier;
+  };
+
+  const loginWithPhone = async (phoneNumber, appVerifier) => {
+    setLoading(true);
+    setError(null);
+    try {
+      // DEV BYPASS: Skip Firebase for the dummy test number to avoid billing issues
+      if (phoneNumber === '+919999999999') {
+        // Return a fake confirmation result that intercepts confirm()
+        return { 
+          success: true, 
+          confirmationResult: { 
+            isDevBypass: true, 
+            phoneNumber 
+          } 
+        };
+      }
+
+      const confirmationResult = await signInWithPhoneNumber(auth, phoneNumber, appVerifier);
+      return { success: true, confirmationResult };
+    } catch (err) {
+      const msg = err.message || 'Phone sign-in failed';
+      setError(msg);
+      return { success: false, error: msg };
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const verifyPhoneOtp = async (confirmationResult, otp) => {
+    setLoading(true);
+    setError(null);
+    try {
+      let firebaseUser;
+      
+      // Handle DEV BYPASS mock confirmation
+      if (confirmationResult.isDevBypass) {
+        if (otp !== '123456') throw new Error('Invalid OTP code');
+        firebaseUser = { phoneNumber: confirmationResult.phoneNumber, uid: 'dev-bypass-uid-999' };
+      } else {
+        const result = await confirmationResult.confirm(otp);
+        firebaseUser = result.user;
+      }
+      
+      const backendData = await syncFirebaseUser(firebaseUser, 'phone');
+      
+      const userData = backendData?.user || {
+        phone: firebaseUser.phoneNumber,
+        provider: 'phone',
+        isVerified: true
+      };
+      const jwtToken = backendData?.token || null;
+
+      localStorage.setItem('user', JSON.stringify(userData));
+      if (jwtToken) localStorage.setItem('token', jwtToken);
+      setUser(userData);
+      setToken(jwtToken);
+      return { success: true };
+    } catch (err) {
+      const msg = err.code === 'auth/invalid-verification-code' ? 'Invalid OTP code' : (err.message || 'OTP verification failed');
+      setError(msg);
+      return { success: false, error: msg };
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const logout = async () => {
     try {
       await signOut(auth);
@@ -254,6 +371,11 @@ export const AuthProvider = ({ children }) => {
         loginWithFacebook,
         requestOTP,
         verifyOTP,
+        requestPasswordReset,
+        resetPassword,
+        setupRecaptcha,
+        loginWithPhone,
+        verifyPhoneOtp,
         logout,
         apiBase: API_BASE
       }}

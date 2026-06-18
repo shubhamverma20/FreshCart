@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
@@ -12,9 +12,9 @@ const GoogleIcon = () => (
   </svg>
 );
 
-const FacebookIcon = () => (
-  <svg className="w-5 h-5" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-    <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" fill="#1877F2"/>
+const PhoneIcon = () => (
+  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
   </svg>
 );
 
@@ -31,29 +31,36 @@ const EyeIcon = ({ open }) =>
   );
 
 export default function AuthPage() {
-  const { login, signup, requestOTP, verifyOTP, loginWithGoogle, loginWithFacebook, loading, user } = useAuth();
+  const { 
+    login, signup, requestOTP, verifyOTP, 
+    loginWithGoogle, requestPasswordReset, resetPassword,
+    setupRecaptcha, loginWithPhone, verifyPhoneOtp,
+    loading, user 
+  } = useAuth();
+  
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
-  const [isSignUp, setIsSignUp] = useState(false);
-  const [isOTPVerification, setIsOTPVerification] = useState(false);
+  // 'login' | 'signup' | 'verify-email' | 'forgot-password' | 'reset-password' | 'phone-login' | 'verify-phone'
+  const [view, setView] = useState('login');
 
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [otp, setOtp] = useState('');
+  const [phoneNumber, setPhoneNumber] = useState('');
+  
   const [showPassword, setShowPassword] = useState(false);
-
   const [alert, setAlert] = useState(null);
   const [formLoading, setFormLoading] = useState(false);
-  const [socialLoading, setSocialLoading] = useState(null); // 'google' | 'facebook' | null
+  const [socialLoading, setSocialLoading] = useState(null);
+  const [confirmationResult, setConfirmationResult] = useState(null);
 
   useEffect(() => {
     const mode = searchParams.get('mode');
-    setIsSignUp(mode === 'signup');
+    if (mode === 'signup') setView('signup');
   }, [searchParams]);
 
-  // Redirect if already authenticated
   useEffect(() => {
     if (user) navigate('/dashboard');
   }, [user, navigate]);
@@ -61,23 +68,7 @@ export default function AuthPage() {
   const showAlert = (message, type) => setAlert({ message, type });
   const hideAlert = () => setAlert(null);
 
-  const handleToggleMode = (e) => {
-    if (e) e.preventDefault();
-    hideAlert();
-    setIsSignUp((prev) => !prev);
-    setIsOTPVerification(false);
-    setOtp('');
-  };
-
-  const handleResendOTP = async () => {
-    showAlert('Resending OTP code...', 'info');
-    const res = await requestOTP(email);
-    if (res.success) {
-      showAlert('A new OTP code has been sent to your email.', 'success');
-    } else {
-      showAlert(res.error || 'Failed to resend OTP.', 'error');
-    }
-  };
+  const isValidEmail = (e) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
 
   const handleGoogleLogin = async () => {
     setSocialLoading('google');
@@ -87,37 +78,105 @@ export default function AuthPage() {
     if (!res.success) showAlert(res.error || 'Google sign-in failed.', 'error');
   };
 
-  const handleFacebookLogin = async () => {
-    setSocialLoading('facebook');
+  const handleSendPhoneOtp = async (e) => {
+    e.preventDefault();
     hideAlert();
-    const res = await loginWithFacebook();
-    setSocialLoading(null);
-    if (!res.success) showAlert(res.error || 'Facebook sign-in failed.', 'error');
+    
+    // Auto-format Indian numbers if country code is missing
+    let formattedPhone = phoneNumber.trim();
+    if (formattedPhone.length === 10 && /^\d+$/.test(formattedPhone)) {
+      formattedPhone = '+91' + formattedPhone;
+    }
+
+    if (!formattedPhone || formattedPhone.length < 10 || !formattedPhone.startsWith('+')) {
+      showAlert('Please enter a valid phone number with country code (e.g. +91 9876543210)', 'error');
+      return;
+    }
+
+    setFormLoading(true);
+    try {
+      const appVerifier = setupRecaptcha('recaptcha-container');
+      const res = await loginWithPhone(formattedPhone, appVerifier);
+      if (res.success) {
+        setConfirmationResult(res.confirmationResult);
+        setView('verify-phone');
+        setOtp('');
+        showAlert(`OTP sent to ${formattedPhone} via SMS.`, 'success');
+      } else {
+        showAlert(res.error || 'Failed to send SMS OTP.', 'error');
+      }
+    } catch (err) {
+      showAlert('Error setting up reCAPTCHA.', 'error');
+    } finally {
+      setFormLoading(false);
+    }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     hideAlert();
     setFormLoading(true);
+
     try {
-      if (isOTPVerification) {
+      // 1. Verify Email OTP
+      if (view === 'verify-email') {
         const signupEmail = localStorage.getItem('signup_email') || email;
         const res = await verifyOTP(signupEmail, otp);
         if (res.success) {
-          showAlert('Email verified! Redirecting to dashboard...', 'success');
+          showAlert('Email verified! Redirecting...', 'success');
           setTimeout(() => navigate('/dashboard'), 1500);
         } else {
           showAlert(res.error || 'Invalid or expired OTP code.', 'error');
         }
-      } else if (isSignUp) {
-        if (!name.trim()) { showAlert('Name is required', 'error'); return; }
-        if (password.length < 6) { showAlert('Password must be at least 6 characters', 'error'); return; }
+      } 
+      // 2. Verify Phone OTP
+      else if (view === 'verify-phone') {
+        if (!confirmationResult) return;
+        const res = await verifyPhoneOtp(confirmationResult, otp);
+        if (res.success) {
+          showAlert('Phone verified! Redirecting...', 'success');
+          setTimeout(() => navigate('/dashboard'), 1500);
+        } else {
+          showAlert(res.error || 'Invalid phone OTP.', 'error');
+        }
+      }
+      // 3. Request Password Reset OTP
+      else if (view === 'forgot-password') {
+        if (!isValidEmail(email)) { showAlert('Please enter a valid email.', 'error'); setFormLoading(false); return; }
+        const res = await requestPasswordReset(email);
+        if (res.success) {
+          setView('reset-password');
+          setOtp('');
+          setPassword('');
+          showAlert('Password reset OTP sent to your email.', 'success');
+        } else {
+          showAlert(res.error || 'Failed to request reset.', 'error');
+        }
+      }
+      // 4. Reset Password
+      else if (view === 'reset-password') {
+        if (password.length < 6) { showAlert('New password must be at least 6 characters.', 'error'); setFormLoading(false); return; }
+        const res = await resetPassword(email, otp, password);
+        if (res.success) {
+          showAlert('Password reset successfully! You can now sign in.', 'success');
+          setView('login');
+          setPassword('');
+        } else {
+          showAlert(res.error || 'Failed to reset password.', 'error');
+        }
+      }
+      // 5. Sign Up
+      else if (view === 'signup') {
+        if (!name.trim()) { showAlert('Name is required', 'error'); setFormLoading(false); return; }
+        if (!isValidEmail(email)) { showAlert('Please enter a valid email.', 'error'); setFormLoading(false); return; }
+        if (password.length < 6) { showAlert('Password must be at least 6 characters', 'error'); setFormLoading(false); return; }
+        
         const res = await signup(name, email, password);
         if (res.success) {
           showAlert('Registration successful! Sending verification code...', 'success');
           const otpRes = await requestOTP(email);
           if (otpRes.success) {
-            setIsOTPVerification(true);
+            setView('verify-email');
             setOtp('');
           } else {
             showAlert('Registered, but failed to send OTP automatically.', 'error');
@@ -125,7 +184,10 @@ export default function AuthPage() {
         } else {
           showAlert(res.error || 'Registration failed.', 'error');
         }
-      } else {
+      } 
+      // 6. Login
+      else if (view === 'login') {
+        if (!isValidEmail(email)) { showAlert('Please enter a valid email.', 'error'); setFormLoading(false); return; }
         const res = await login(email, password);
         if (res.success) {
           showAlert('Login successful! Redirecting...', 'success');
@@ -149,10 +211,9 @@ export default function AuthPage() {
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-40 -right-40 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl" />
         <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-teal-500/10 rounded-full blur-3xl" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-emerald-400/5 rounded-full blur-2xl" />
       </div>
 
-      <div className="relative w-full max-w-md">
+      <div className="relative w-full max-w-md z-10">
         {/* Logo */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center gap-3 mb-3">
@@ -166,71 +227,62 @@ export default function AuthPage() {
         </div>
 
         {/* Card */}
-        <div className="rounded-3xl border border-white/10 bg-white/5 backdrop-blur-xl shadow-2xl overflow-hidden">
-          {/* Top accent */}
-          <div className="h-1 w-full bg-gradient-to-r from-emerald-400 via-teal-400 to-cyan-400" />
+        <div className="rounded-3xl border border-slate-700/50 bg-slate-900/60 backdrop-blur-2xl shadow-2xl overflow-hidden ring-1 ring-white/5">
+          <div className="h-1.5 w-full bg-gradient-to-r from-emerald-400 via-teal-400 to-cyan-400" />
 
-          <div className="p-8">
+          <div className="p-8 sm:p-10">
             {/* Title */}
             <div className="text-center mb-8">
               <h1 className="text-white text-2xl font-bold mb-2">
-                {isOTPVerification
-                  ? '📩 Verify Your Email'
-                  : isSignUp
-                    ? '🚀 Create Account'
-                    : '👋 Welcome Back'}
+                {view === 'verify-email' ? '📩 Verify Your Email' :
+                 view === 'verify-phone' ? '📱 Verify Phone Number' :
+                 view === 'signup' ? '🚀 Create Account' :
+                 view === 'forgot-password' ? '🔑 Reset Password' :
+                 view === 'reset-password' ? '🔐 Create New Password' :
+                 view === 'phone-login' ? '📱 Phone Login' :
+                 '👋 Welcome Back'}
               </h1>
               <p className="text-gray-400 text-sm">
-                {isOTPVerification
-                  ? `Check your inbox — we sent a code to ${localStorage.getItem('signup_email') || email}`
-                  : isSignUp
-                    ? 'Join FreshCart for fresh grocery deliveries'
-                    : 'Sign in to track orders and shop faster'}
+                {view === 'verify-email' ? `Check your inbox for OTP sent to ${localStorage.getItem('signup_email') || email}` :
+                 view === 'verify-phone' ? `Enter the SMS code sent to ${phoneNumber}` :
+                 view === 'signup' ? 'Join FreshCart for fresh grocery deliveries' :
+                 view === 'forgot-password' ? 'Enter your email to receive a reset code' :
+                 view === 'reset-password' ? 'Enter the OTP and your new password' :
+                 view === 'phone-login' ? 'Sign in securely using your mobile number' :
+                 'Sign in to track orders and shop faster'}
               </p>
             </div>
 
-            {/* Social Login Buttons (only when not in OTP mode) */}
-            {!isOTPVerification && (
+            {/* Social & Alternative Logins */}
+            {(view === 'login' || view === 'signup' || view === 'phone-login') && (
               <>
                 <div className="grid grid-cols-2 gap-3 mb-6">
                   {/* Google */}
                   <button
-                    id="btn-google-signin"
                     type="button"
                     onClick={handleGoogleLogin}
                     disabled={isBusy}
-                    className="flex items-center justify-center gap-2.5 px-4 py-3 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 text-white text-sm font-semibold transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed group"
+                    className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl border border-slate-700/50 bg-slate-800/40 hover:bg-slate-700 text-white text-sm font-semibold transition-all shadow-sm hover:shadow-md disabled:opacity-50"
                   >
-                    {socialLoading === 'google' ? (
-                      <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
-                    ) : (
-                      <GoogleIcon />
-                    )}
-                    <span className="group-hover:text-white/90">Google</span>
+                    {socialLoading === 'google' ? <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin" /> : <GoogleIcon />}
+                    <span>Google</span>
                   </button>
-
-                  {/* Facebook */}
+                  {/* Toggle Phone/Email */}
                   <button
-                    id="btn-facebook-signin"
                     type="button"
-                    onClick={handleFacebookLogin}
+                    onClick={() => setView(view === 'phone-login' ? 'login' : 'phone-login')}
                     disabled={isBusy}
-                    className="flex items-center justify-center gap-2.5 px-4 py-3 rounded-xl border border-white/10 bg-white/5 hover:bg-blue-500/10 hover:border-blue-400/30 text-white text-sm font-semibold transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed group"
+                    className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl border border-slate-700/50 bg-slate-800/40 hover:bg-slate-700 text-white text-sm font-semibold transition-all shadow-sm hover:shadow-md disabled:opacity-50"
                   >
-                    {socialLoading === 'facebook' ? (
-                      <div className="w-4 h-4 border-2 border-white/40 border-t-blue-400 rounded-full animate-spin" />
-                    ) : (
-                      <FacebookIcon />
-                    )}
-                    <span className="group-hover:text-blue-300">Facebook</span>
+                    <PhoneIcon />
+                    <span>{view === 'phone-login' ? 'Use Email' : 'Use Phone'}</span>
                   </button>
                 </div>
 
-                {/* Divider */}
                 <div className="relative flex items-center mb-6">
                   <div className="flex-1 border-t border-white/10" />
                   <span className="px-4 text-gray-500 text-xs font-medium uppercase tracking-widest">
-                    or continue with email
+                    or
                   </span>
                   <div className="flex-1 border-t border-white/10" />
                 </div>
@@ -239,150 +291,108 @@ export default function AuthPage() {
 
             {/* Alert */}
             {alert && (
-              <div
-                className={`mb-5 px-4 py-3 rounded-xl text-sm font-medium border flex items-start gap-2.5 ${
-                  alert.type === 'success'
-                    ? 'bg-emerald-500/10 border-emerald-400/30 text-emerald-300'
-                    : alert.type === 'info'
-                      ? 'bg-blue-500/10 border-blue-400/30 text-blue-300'
-                      : 'bg-red-500/10 border-red-400/30 text-red-300'
-                }`}
-              >
-                <span className="mt-0.5 flex-shrink-0">
-                  {alert.type === 'success' ? '✓' : alert.type === 'info' ? 'ℹ' : '⚠'}
-                </span>
-                {alert.message}
+              <div className={`mb-5 px-4 py-3 rounded-xl text-sm font-medium border flex items-start gap-2.5 ${alert.type === 'success' ? 'bg-emerald-500/10 border-emerald-400/30 text-emerald-300' : 'bg-red-500/10 border-red-400/30 text-red-300'}`}>
+                <span className="mt-0.5">{alert.type === 'success' ? '✓' : '⚠'}</span>
+                <span>{alert.message}</span>
               </div>
             )}
 
+
             {/* Form */}
-            <form onSubmit={handleSubmit} className="space-y-4">
-              {isSignUp && !isOTPVerification && (
+            <form onSubmit={view === 'phone-login' ? handleSendPhoneOtp : handleSubmit} className="space-y-4">
+              
+              {/* Name Field */}
+              {view === 'signup' && (
                 <div>
-                  <label className="block text-gray-300 text-sm font-medium mb-1.5">Full Name</label>
-                  <input
-                    id="input-name"
-                    type="text"
-                    placeholder="e.g. John Doe"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    required
-                    className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-gray-500 text-sm focus:outline-none focus:border-emerald-400/50 focus:bg-white/8 focus:ring-2 focus:ring-emerald-400/10 transition-all duration-200"
-                  />
+                  <label className="block text-gray-300 text-xs font-semibold uppercase mb-2 ml-1">Full Name</label>
+                  <input type="text" placeholder="e.g. John Doe" value={name} onChange={(e) => setName(e.target.value)} required
+                    className="w-full px-4 py-3.5 rounded-xl bg-slate-800/80 border border-slate-700/50 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-emerald-400 focus:bg-slate-800 focus:ring-4 focus:ring-emerald-400/20 transition-all" />
                 </div>
               )}
 
-              {!isOTPVerification ? (
-                <>
-                  <div>
-                    <label className="block text-gray-300 text-sm font-medium mb-1.5">Email Address</label>
-                    <input
-                      id="input-email"
-                      type="email"
-                      placeholder="email@domain.com"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      required
-                      className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-gray-500 text-sm focus:outline-none focus:border-emerald-400/50 focus:bg-white/8 focus:ring-2 focus:ring-emerald-400/10 transition-all duration-200"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-gray-300 text-sm font-medium mb-1.5">Password</label>
-                    <div className="relative">
-                      <input
-                        id="input-password"
-                        type={showPassword ? 'text' : 'password'}
-                        placeholder="••••••••"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        required
-                        className="w-full px-4 py-3 pr-12 rounded-xl bg-white/5 border border-white/10 text-white placeholder-gray-500 text-sm focus:outline-none focus:border-emerald-400/50 focus:bg-white/8 focus:ring-2 focus:ring-emerald-400/10 transition-all duration-200"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword((p) => !p)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 transition-colors"
-                      >
-                        <EyeIcon open={showPassword} />
+              {/* Email Field */}
+              {['login', 'signup', 'forgot-password'].includes(view) && (
+                <div>
+                  <label className="block text-gray-300 text-xs font-semibold uppercase mb-2 ml-1">Email Address</label>
+                  <input type="email" placeholder="name@example.com" value={email} onChange={(e) => setEmail(e.target.value)} required
+                    className="w-full px-4 py-3.5 rounded-xl bg-slate-800/80 border border-slate-700/50 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-emerald-400 focus:bg-slate-800 focus:ring-4 focus:ring-emerald-400/20 transition-all" />
+                </div>
+              )}
+
+              {/* Phone Number Field */}
+              {view === 'phone-login' && (
+                <div>
+                  <label className="block text-gray-300 text-xs font-semibold uppercase mb-2 ml-1">Phone Number</label>
+                  <input type="tel" placeholder="+91 9876543210" value={phoneNumber} onChange={(e) => setPhoneNumber(e.target.value)} required
+                    className="w-full px-4 py-3.5 rounded-xl bg-slate-800/80 border border-slate-700/50 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-emerald-400 focus:bg-slate-800 focus:ring-4 focus:ring-emerald-400/20 transition-all" />
+                </div>
+              )}
+
+              {/* Password Field */}
+              {['login', 'signup', 'reset-password'].includes(view) && (
+                <div>
+                  <div className="flex justify-between items-center mb-2 ml-1 pr-1">
+                    <label className="block text-gray-300 text-xs font-semibold uppercase">
+                      {view === 'reset-password' ? 'New Password' : 'Password'}
+                    </label>
+                    {view === 'login' && (
+                      <button type="button" onClick={() => { setView('forgot-password'); hideAlert(); }} className="text-emerald-400 hover:text-emerald-300 text-xs font-semibold transition-colors">
+                        Forgot?
                       </button>
-                    </div>
+                    )}
                   </div>
-                </>
-              ) : (
-                <div>
-                  <label className="block text-gray-300 text-sm font-medium mb-1.5">6-Digit OTP Code</label>
-                  <input
-                    id="input-otp"
-                    type="text"
-                    inputMode="numeric"
-                    maxLength={6}
-                    placeholder="e.g. 123456"
-                    value={otp}
-                    onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
-                    required
-                    className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-gray-500 text-sm text-center tracking-[0.5em] text-lg font-bold focus:outline-none focus:border-emerald-400/50 focus:bg-white/8 focus:ring-2 focus:ring-emerald-400/10 transition-all duration-200"
-                  />
+                  <div className="relative">
+                    <input type={showPassword ? 'text' : 'password'} placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} required
+                      className="w-full px-4 py-3.5 pr-12 rounded-xl bg-slate-800/80 border border-slate-700/50 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-emerald-400 focus:bg-slate-800 focus:ring-4 focus:ring-emerald-400/20 transition-all" />
+                    <button type="button" onClick={() => setShowPassword((p) => !p)} className="absolute right-3 top-1/2 -translate-y-1/2 p-2 text-slate-400 hover:text-white transition-all">
+                      <EyeIcon open={showPassword} />
+                    </button>
+                  </div>
                 </div>
               )}
 
-              {/* Submit button */}
-              <button
-                id="btn-auth-submit"
-                type="submit"
-                disabled={isBusy}
-                className="w-full py-3.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white font-semibold text-sm shadow-lg shadow-emerald-500/25 hover:shadow-emerald-500/40 transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2 mt-2"
-              >
+              {/* OTP Field */}
+              {['verify-email', 'verify-phone', 'reset-password'].includes(view) && (
+                <div>
+                  <label className="block text-gray-300 text-xs font-semibold uppercase mb-2 ml-1">6-Digit OTP Code</label>
+                  <input type="text" inputMode="numeric" maxLength={6} placeholder="123456" value={otp} onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))} required
+                    className="w-full px-4 py-4 rounded-xl bg-slate-800/80 border border-slate-700/50 text-emerald-400 placeholder-slate-600 text-center tracking-[1em] text-2xl font-bold focus:outline-none focus:border-emerald-400 focus:bg-slate-800 focus:ring-4 focus:ring-emerald-400/20 transition-all" />
+                </div>
+              )}
+
+              {/* Submit Button */}
+              <button type="submit" disabled={isBusy}
+                className="w-full py-3.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-900 font-bold text-sm uppercase tracking-wide shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/40 hover:-translate-y-0.5 transition-all duration-300 flex items-center justify-center gap-3 mt-6 disabled:opacity-60 disabled:cursor-not-allowed">
                 {formLoading ? (
-                  <>
-                    <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
-                    Processing...
-                  </>
-                ) : isOTPVerification ? (
-                  '✓ Verify Email'
-                ) : isSignUp ? (
-                  '→ Create Account'
-                ) : (
-                  '→ Sign In'
-                )}
+                  <><div className="w-5 h-5 border-2 border-slate-900/30 border-t-slate-900 rounded-full animate-spin" /> Processing...</>
+                ) : view === 'verify-email' ? 'Verify Email'
+                  : view === 'verify-phone' ? 'Verify Phone'
+                  : view === 'signup' ? 'Create Account'
+                  : view === 'forgot-password' ? 'Send Reset Code'
+                  : view === 'reset-password' ? 'Update Password'
+                  : view === 'phone-login' ? 'Send SMS Code'
+                  : 'Sign In'}
               </button>
             </form>
 
-            {/* Footer */}
+            {/* Footer Links */}
             <div className="mt-6 text-center text-sm text-gray-500">
-              {isOTPVerification ? (
-                <span>
-                  Didn't get the code?{' '}
-                  <button
-                    onClick={handleResendOTP}
-                    className="text-emerald-400 hover:text-emerald-300 font-semibold transition-colors"
-                  >
-                    Resend OTP
-                  </button>
-                </span>
-              ) : isSignUp ? (
-                <span>
-                  Already have an account?{' '}
-                  <a href="#" onClick={handleToggleMode} className="text-emerald-400 hover:text-emerald-300 font-semibold transition-colors">
-                    Sign in
-                  </a>
-                </span>
+              {view === 'verify-email' ? (
+                <span>Didn't get the code? <button onClick={() => requestOTP(email)} className="text-emerald-400 hover:text-emerald-300 font-semibold">Resend Email OTP</button></span>
+              ) : ['forgot-password', 'reset-password'].includes(view) ? (
+                <span>Remember your password? <button onClick={() => setView('login')} className="text-emerald-400 hover:text-emerald-300 font-semibold">Sign in</button></span>
+              ) : view === 'signup' ? (
+                <span>Already have an account? <button onClick={() => setView('login')} className="text-emerald-400 hover:text-emerald-300 font-semibold">Sign in</button></span>
               ) : (
-                <span>
-                  New to FreshCart?{' '}
-                  <a href="#" onClick={handleToggleMode} className="text-emerald-400 hover:text-emerald-300 font-semibold transition-colors">
-                    Create account
-                  </a>
-                </span>
+                <span>New to FreshCart? <button onClick={() => setView('signup')} className="text-emerald-400 hover:text-emerald-300 font-semibold">Create account</button></span>
               )}
             </div>
           </div>
         </div>
-
-        {/* Footer note */}
-        <p className="text-center text-gray-600 text-xs mt-6">
-          By signing in, you agree to our Terms of Service and Privacy Policy.
-        </p>
       </div>
+
+      {/* Hidden reCAPTCHA container moved outside to prevent layout shift */}
+      <div id="recaptcha-container" className="fixed bottom-0 right-0 z-50"></div>
     </div>
   );
 }

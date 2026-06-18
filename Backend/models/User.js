@@ -9,9 +9,16 @@ const userSchema = new mongoose.Schema(
         },
         email: {
             type: String,
-            required: true,
+            required: false, // Make false to support phone-only users
             unique: true,
+            sparse: true,
             lowercase: true,
+            trim: true
+        },
+        phone: {
+            type: String,
+            unique: true,
+            sparse: true,
             trim: true
         },
         password: {

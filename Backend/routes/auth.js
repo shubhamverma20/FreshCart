@@ -14,7 +14,11 @@ router.post('/otp/request', authController.requestOTP);
 // Confirm Email Verification OTP
 router.post('/otp/verify', authController.verifyOTP);
 
-// Firebase Social Login Sync (Google / Facebook)
+// Firebase Social Login Sync (Google / Facebook / Phone)
 router.post('/firebase', authController.firebaseSync);
+
+// Password Reset
+router.post('/password/request-reset', authController.requestPasswordReset);
+router.post('/password/reset', authController.resetPassword);
 
 module.exports = router;
