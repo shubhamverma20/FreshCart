@@ -61,17 +61,43 @@ router.get('/', async (req, res) => {
 // ADD NEW PRODUCT (CLOUDINARY)
 router.post('/add', upload.single('image'), async (req, res) => {
     try {
-        const { name, price, category } = req.body;
+        const { name, price, category, originalPrice, badge } = req.body;
         const newProduct = new Product({
             name,
             price,
             category,
+            originalPrice: originalPrice ? Number(originalPrice) : undefined,
+            badge: badge || null,
             image: req.file ? req.file.path : CLOUDINARY_BASE + "default.png" 
         });
         await newProduct.save();
         res.status(201).json(newProduct);
     } catch (err) {
+        console.error("Add Product Error:", err);
         res.status(500).json({ message: "Upload failed!" });
+    }
+});
+
+// DELETE PRODUCT
+router.delete('/:id', async (req, res) => {
+    try {
+        if (mongoose.connection.readyState !== 1) {
+            return res.status(200).json({ message: "Mock product deleted (Database offline)" });
+        }
+        
+        // Check if ID is numeric (static fallback products)
+        if (!isNaN(req.params.id)) {
+            return res.status(200).json({ message: "Static product removed from display (Mock)" });
+        }
+
+        const product = await Product.findByIdAndDelete(req.params.id);
+        if (!product) {
+            return res.status(404).json({ message: "Product not found!" });
+        }
+        res.status(200).json({ message: "Product deleted successfully!" });
+    } catch (err) {
+        console.error("Delete Product Error:", err);
+        res.status(500).json({ message: "Failed to delete product!" });
     }
 });
 

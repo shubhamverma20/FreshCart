@@ -120,3 +120,51 @@ exports.placeOrder = async (req, res) => {
     res.status(500).json({ message: 'Something went wrong while placing order' });
   }
 };
+
+/**
+ * Get All Orders
+ */
+exports.getOrders = async (req, res) => {
+  try {
+    if (mongoose.connection.readyState !== 1) {
+      console.warn("[Order Controller] Database is offline. Serving static mock orders.");
+      return res.status(200).json([
+        {
+          orderId: 'ORD-9824X',
+          email: 'rahul@example.com',
+          items: [{ name: 'Fresh Organic Bananas', price: 80, quantity: 2 }],
+          totalPrice: 680,
+          shippingAddress: 'Rahul Sharma, 123 Shopping St, Pin: 400001, Phone: 9876543210',
+          paymentMethod: 'upi',
+          createdAt: new Date(),
+          status: 'Processing'
+        },
+        {
+          orderId: 'ORD-9823X',
+          email: 'priya@example.com',
+          items: [{ name: 'Whole Wheat Bread', price: 55, quantity: 1 }],
+          totalPrice: 1240,
+          shippingAddress: 'Priya Patel, Area Name, Pin: 400002, Phone: 9876543211',
+          paymentMethod: 'card',
+          createdAt: new Date(Date.now() - 3600000),
+          status: 'Out for Delivery'
+        },
+        {
+          orderId: 'ORD-9822X',
+          email: 'amit@example.com',
+          items: [{ name: 'Free Range Eggs', price: 60, quantity: 3 }],
+          totalPrice: 450,
+          shippingAddress: 'Amit Kumar, Road St, Pin: 400003, Phone: 9876543212',
+          paymentMethod: 'cod',
+          createdAt: new Date(Date.now() - 7200000),
+          status: 'Delivered'
+        }
+      ]);
+    }
+    const orders = await Order.find().sort({ createdAt: -1 });
+    res.status(200).json(orders);
+  } catch (err) {
+    console.error("[Order Controller] Get Orders error:", err);
+    res.status(500).json({ message: 'Something went wrong while fetching orders' });
+  }
+};
