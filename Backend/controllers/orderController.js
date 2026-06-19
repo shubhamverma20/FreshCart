@@ -295,66 +295,72 @@ exports.getOrders = async (req, res) => {
   }
 };
 
-         / /   M o c k   M o d e   S u p p o r t 
-         i f   ( m o n g o o s e . c o n n e c t i o n . r e a d y S t a t e   ! = =   1 )   { 
-             c o n s o l e . w a r n ( ' [ O r d e r   C o n t r o l l e r ]   D a t a b a s e   i s   o f f l i n e .   S e r v i n g   m o c k   o r d e r . ' ) ; 
-             / /   R e t u r n   a   d y n a m i c   m o c k   o r d e r 
-             r e t u r n   r e s . s t a t u s ( 2 0 0 ) . j s o n ( { 
-                 o r d e r I d , 
-                 e m a i l :   ' u s e r @ e x a m p l e . c o m ' , 
-                 i t e m s :   [ {   n a m e :   ' M o c k   I t e m ' ,   p r i c e :   1 0 0 ,   q u a n t i t y :   1   } ] , 
-                 t o t a l P r i c e :   1 0 0 , 
-                 s h i p p i n g A d d r e s s :   ' M o c k   A d d r e s s ' , 
-                 p a y m e n t M e t h o d :   ' u p i ' , 
-                 s t a t u s :   ' P r o c e s s i n g ' , 
-                 c r e a t e d A t :   n e w   D a t e ( ) 
-             } ) ; 
-         } 
- 
-         c o n s t   o r d e r   =   a w a i t   O r d e r . f i n d O n e ( {   o r d e r I d   } ) ; 
-         i f   ( ! o r d e r )   { 
-             r e t u r n   r e s . s t a t u s ( 4 0 4 ) . j s o n ( {   m e s s a g e :   ' O r d e r   n o t   f o u n d '   } ) ; 
-         } 
-         
-         r e s . s t a t u s ( 2 0 0 ) . j s o n ( o r d e r ) ; 
-     }   c a t c h   ( e r r )   { 
-         c o n s o l e . e r r o r ( ' [ O r d e r   C o n t r o l l e r ]   G e t   O r d e r   B y   I D   e r r o r : ' ,   e r r ) ; 
-         r e s . s t a t u s ( 5 0 0 ) . j s o n ( {   m e s s a g e :   ' S o m e t h i n g   w e n t   w r o n g   f e t c h i n g   t h e   o r d e r '   } ) ; 
-     } 
- } ; 
- 
- / * * 
-   *   U p d a t e   O r d e r   S t a t u s 
-   * / 
- e x p o r t s . u p d a t e O r d e r S t a t u s   =   a s y n c   ( r e q ,   r e s )   = >   { 
-     t r y   { 
-         c o n s t   {   o r d e r I d   }   =   r e q . p a r a m s ; 
-         c o n s t   {   s t a t u s   }   =   r e q . b o d y ;   / /   P r o c e s s i n g ,   O u t   f o r   D e l i v e r y ,   D e l i v e r e d 
-         
-         i f   ( ! [ ' P r o c e s s i n g ' ,   ' O u t   f o r   D e l i v e r y ' ,   ' D e l i v e r e d ' ] . i n c l u d e s ( s t a t u s ) )   { 
-             r e t u r n   r e s . s t a t u s ( 4 0 0 ) . j s o n ( {   m e s s a g e :   ' I n v a l i d   s t a t u s '   } ) ; 
-         } 
- 
-         i f   ( m o n g o o s e . c o n n e c t i o n . r e a d y S t a t e   ! = =   1 )   { 
-               c o n s o l e . w a r n ( ' [ O r d e r   C o n t r o l l e r ]   D a t a b a s e   o f f l i n e .   R e t u r n i n g   s u c c e s s   m o c k . ' ) ; 
-               r e t u r n   r e s . s t a t u s ( 2 0 0 ) . j s o n ( {   m e s s a g e :   ' S t a t u s   u p d a t e d   s u c c e s s f u l l y   ( M o c k ) '   } ) ; 
-         } 
- 
-         c o n s t   o r d e r   =   a w a i t   O r d e r . f i n d O n e A n d U p d a t e ( 
-             {   o r d e r I d   } , 
-             {   s t a t u s   } , 
-             {   n e w :   t r u e   } 
-         ) ; 
- 
-         i f   ( ! o r d e r )   { 
-             r e t u r n   r e s . s t a t u s ( 4 0 4 ) . j s o n ( {   m e s s a g e :   ' O r d e r   n o t   f o u n d '   } ) ; 
-         } 
- 
-         r e s . s t a t u s ( 2 0 0 ) . j s o n ( {   m e s s a g e :   ' O r d e r   s t a t u s   u p d a t e d   s u c c e s s f u l l y ' ,   o r d e r   } ) ; 
-     }   c a t c h   ( e r r )   { 
-         c o n s o l e . e r r o r ( ' [ O r d e r   C o n t r o l l e r ]   U p d a t e   O r d e r   S t a t u s   e r r o r : ' ,   e r r ) ; 
-         r e s . s t a t u s ( 5 0 0 ) . j s o n ( {   m e s s a g e :   ' S o m e t h i n g   w e n t   w r o n g   u p d a t i n g   t h e   o r d e r   s t a t u s '   } ) ; 
-     } 
- } ; 
-  
- 
+/**
+ * Get Specific Order By ID
+ */
+exports.getOrderById = async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    
+    // Mock Mode Support
+    if (mongoose.connection.readyState !== 1) {
+      console.warn('[Order Controller] Database is offline. Serving mock order.');
+      // Return a dynamic mock order
+      return res.status(200).json({
+        orderId,
+        email: 'user@example.com',
+        items: [{ name: 'Mock Item', price: 100, quantity: 1 }],
+        totalPrice: 100,
+        shippingAddress: 'Mock Address',
+        paymentMethod: 'upi',
+        status: 'Processing',
+        createdAt: new Date()
+      });
+    }
+
+    const order = await Order.findOne({ orderId });
+    if (!order) {
+      return res.status(404).json({ message: 'Order not found' });
+    }
+    
+    res.status(200).json(order);
+  } catch (err) {
+    console.error('[Order Controller] Get Order By ID error:', err);
+    res.status(500).json({ message: 'Something went wrong fetching the order' });
+  }
+};
+
+/**
+ * Update Order Status
+ */
+exports.updateOrderStatus = async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    const { status } = req.body; // Processing, Out for Delivery, Delivered
+    
+    if (!['Processing', 'Out for Delivery', 'Delivered'].includes(status)) {
+      return res.status(400).json({ message: 'Invalid status' });
+    }
+
+    if (mongoose.connection.readyState !== 1) {
+       console.warn('[Order Controller] Database offline. Returning success mock.');
+       return res.status(200).json({ message: 'Status updated successfully (Mock)' });
+    }
+
+    const order = await Order.findOneAndUpdate(
+      { orderId },
+      { status },
+      { new: true }
+    );
+
+    if (!order) {
+      return res.status(404).json({ message: 'Order not found' });
+    }
+
+    res.status(200).json({ message: 'Order status updated successfully', order });
+  } catch (err) {
+    console.error('[Order Controller] Update Order Status error:', err);
+    res.status(500).json({ message: 'Something went wrong updating the order status' });
+  }
+};
+
