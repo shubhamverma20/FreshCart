@@ -1,7 +1,7 @@
 # 🛒 FreshCart - Fresh Groceries Delivered Fast
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Status](https://img.shields.io/badge/status-UI%20Complete%20%7C%20Backend%20In%20Progress-blue)]()
+[![Status](https://img.shields.io/badge/status-Fullstack%20Complete-green)]()
 [![Deployed on Vercel](https://img.shields.io/badge/Frontend-Vercel-000000.svg)](https://freshcart-grocery-delivery.vercel.app/)
 [![Backend on Render](https://img.shields.io/badge/Backend-Render-46E3B7.svg)](https://freshcart-dewk.onrender.com)
 
@@ -21,20 +21,20 @@
 - **Smart Environment Detection**: Automatically switches between localhost and production API endpoints
 
 ### 🛍️ **Shopping Experience**
-- **Dynamic Product Catalog**: Fetches fresh items from REST API with loading states
-- **Interactive Shopping Cart**: Slide-out sidebar with real-time quantity updates & localStorage persistence
-- **Streamlined Checkout**: Multi-step form with delivery address, multiple payment methods (UPI/Card/COD)
+- **Dynamic Product Catalog**: Fetches fresh items from MongoDB via REST API
+- **Interactive Shopping Cart**: Slide-out sidebar with real-time quantity updates & persistence
+- **Streamlined Checkout**: Multi-step form with delivery address, Razorpay Payment Gateway, and COD
 - **Order Success Flow**: Animated confirmation overlay with auto-cart clearing
 
 ### 📦 **Order Tracking & Admin**
-- **Live Delivery Tracking**: Mock map with animated delivery marker, pulse effects, and timeline status
+- **Live Delivery Tracking**: Map with animated delivery marker, pulse effects, and timeline status
 - **Admin Dashboard**: Sales stats, active orders, stock alerts, and delivery team overview
-- **Order Management Table**: Filterable orders with status badges (Processing, Out for Delivery, Delivered)
+- **Order Management**: Real-time management of orders and product statuses
 
 ### 🔐 **Authentication & Security**
-- JWT-based login/signup flow
-- Password hashing with `bcryptjs`
-- CORS-protected backend with environment-based origin validation
+- **Firebase Auth**: Google, Facebook, and Phone Number (OTP) sign-in
+- **JWT & MongoDB Sync**: Secure backend session management synced with Firebase
+- **CORS Protection**: Environment-based origin validation for API security
 
 ---
 
@@ -42,10 +42,10 @@
 
 | Layer        | Technologies |
 |--------------|--------------|
-| **Frontend** | HTML5, CSS3 (Glassmorphism), Vanilla JavaScript (ES6+), Ionicons |
+| **Frontend** | React, Vite, Context API, CSS3 (Glassmorphism), Ionicons |
 | **Backend**  | Node.js, Express.js, MongoDB, Mongoose |
-| **Auth**     | JWT (`jsonwebtoken`), bcrypt (`bcryptjs`) |
-| **State**    | `localStorage` + Custom Cart Context Pattern |
+| **Auth**     | Firebase Auth, JWT |
+| **Payments** | Razorpay SDK |
 | **Deployment** | Vercel (Frontend), Render (Backend), MongoDB Atlas (Database) |
 
 ---
@@ -54,28 +54,28 @@
 
 ```
 FreshCart/
-├── Backend/
-│   ├── models/User.js          # Mongoose user schema
-│   ├── routes/
-│   │   ├── auth.js             # JWT signup/login routes
-│   │   └── products.js         # Mock product API with cache control
-│   ├── server.js               # Express app, CORS, DB connection
+├── backend/
+│   ├── controllers/            # API logic (orders, products, auth)
+│   ├── models/                 # Mongoose schemas (User, Product, Order)
+│   ├── routes/                 # Express API routes
+│   ├── services/               # Email and other third-party services
+│   ├── server.js               # Express app, CORS, DB connection setup
 │   └── package.json
 ├── frontend/
-│   ├── assets/images/          # Product & UI images
-│   ├── css/style.css           # Global styles, glassmorphism, responsive breakpoints
-│   ├── js/
-│   │   ├── app.js              # Core logic: API fetch, cart management, UI rendering
-│   │   └── CartContext.jsx     # React-style context pattern (standalone ready)
-│   ├── index.html              # Homepage with hero, categories, products
-│   ├── cart.html               # Checkout page with payment & summary
-│   ├── delivery.html           # Live tracking with animated map & timeline
-│   ├── admin.html              # Dashboard with stats & order table
-│   └── login.html              # Auth page with social/OTP placeholders
-├── .gitignore
-├── LICENSE
+│   ├── public/                 # Static assets
+│   ├── src/
+│   │   ├── components/         # Reusable React components
+│   │   ├── context/            # Global state (AuthContext, CartContext)
+│   │   ├── pages/              # Page views (Home, Checkout, Admin, etc.)
+│   │   ├── firebase/           # Firebase initialization
+│   │   ├── App.jsx             # Main routing logic
+│   │   └── main.jsx            # React entry point
+│   ├── index.html              # Vite HTML template
+│   ├── vite.config.js          # Vite configuration
+│   └── package.json
+├── vercel.json                 # Vercel deployment rewrites
 ├── README.md
-└── vercel.json
+└── LICENSE
 ```
 
 ---
@@ -83,43 +83,39 @@ FreshCart/
 ## ⚙️ Setup & Installation
 
 ### Prerequisites
-- Node.js (v14+)
+- Node.js (v18+)
 - MongoDB (Local or Atlas)
-- npm or yarn
+- Firebase Project setup
+- Razorpay Test Account
 
 ### 1. Backend Setup
 ```bash
-cd Backend
+cd backend
 npm install
 
-# Create .env file
+# Create .env file with the required variables:
 echo MONGO_URI=your_mongodb_uri > .env
 echo JWT_SECRET=your_super_secret_key >> .env
-echo PORT=5000 >> .env
-echo CLIENT_URL=https://freshcart-grocery-delivery.vercel.app >> .env
+echo PORT=1111 >> .env
+echo CLIENT_URL=http://localhost:5173 >> .env
+echo RAZORPAY_KEY_ID=your_razorpay_key_id >> .env
+echo RAZORPAY_KEY_SECRET=your_razorpay_key_secret >> .env
 
-npm run dev
+npm start
 ```
 
 ### 2. Frontend Setup
 ```bash
 cd frontend
-# No build step required. Open index.html directly or use Live Server:
-npx live-server --port=5500
+npm install
+
+# Create .env file for Vite API config:
+echo VITE_API_BASE=http://localhost:1111 > .env
+
+npm run dev
 ```
 
-> 💡 The frontend automatically detects the environment and routes API calls to `localhost:1111` or your Render backend.
-
----
-
-## 📡 API Endpoints
-
-| Method | Endpoint         | Description                     |
-|--------|------------------|---------------------------------|
-| `POST` | `/api/auth/signup` | Register new user (JWT + bcrypt) |
-| `POST` | `/api/auth/login`  | Authenticate & return JWT       |
-| `GET`  | `/api/products`    | Fetch product catalog (no-cache)|
-| `GET`  | `/api/health`      | Server status check             |
+> 💡 The frontend automatically detects the environment and routes API calls to the defined `VITE_API_BASE` or falls back to production endpoints.
 
 ---
 
@@ -127,14 +123,11 @@ npx live-server --port=5500
 
 | Module          | Status        | Notes                                  |
 |-----------------|---------------|----------------------------------------|
-| UI/UX Design    | ✅ Complete   | Glassmorphism, responsive, animations  |
-| Frontend Logic  | ✅ Complete   | Cart, checkout, tracking, admin mock   |
-| Backend API     | 🟡 In Progress| Routes ready, DB integration pending   |
-| Auth Flow       | 🟡 In Progress| JWT structure ready, frontend binding  |
-| Payment Gateway | 🔜 Upcoming   | Razorpay/Stripe integration planned    |
-| Real DB Sync    | 🔜 Upcoming   | Replace mock products with MongoDB     |
-
-> 📌 **Current Focus:** Connecting frontend to live MongoDB, finalizing auth flow, and adding payment processing.
+| UI/UX Design    | ✅ Complete   | Fully implemented React components     |
+| Frontend Logic  | ✅ Complete   | Context providers configured           |
+| Backend API     | ✅ Complete   | REST endpoints and DB connected        |
+| Auth Flow       | ✅ Complete   | Firebase integrated with Backend sync  |
+| Payment Gateway | ✅ Complete   | Razorpay end-to-end integration added  |
 
 ---
 

@@ -295,13 +295,6 @@ exports.getOrders = async (req, res) => {
   }
 };
 
- / * * 
-   *   G e t   S p e c i f i c   O r d e r   B y   I D 
-   * / 
- e x p o r t s . g e t O r d e r B y I d   =   a s y n c   ( r e q ,   r e s )   = >   { 
-     t r y   { 
-         c o n s t   {   o r d e r I d   }   =   r e q . p a r a m s ; 
-         
          / /   M o c k   M o d e   S u p p o r t 
          i f   ( m o n g o o s e . c o n n e c t i o n . r e a d y S t a t e   ! = =   1 )   { 
              c o n s o l e . w a r n ( ' [ O r d e r   C o n t r o l l e r ]   D a t a b a s e   i s   o f f l i n e .   S e r v i n g   m o c k   o r d e r . ' ) ; 
