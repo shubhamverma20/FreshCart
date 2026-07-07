@@ -53,7 +53,7 @@ export default function DeliveryTracking() {
   const currentStatus = order?.status || 'Out for Delivery'; // Mock default to Out for Delivery
 
   return (
-    <main className="container mx-auto px-4 py-8 mt-16 max-w-6xl animate-fade-in">
+    <main className="container mx-auto px-4 py-8 mt-28 lg:mt-32 max-w-6xl animate-fade-in">
       <div className="mb-6">
         <h2 className="text-2xl font-bold text-gray-800">
           Order Tracking <span className="text-gray-500 text-lg font-normal">#{orderId}</span>

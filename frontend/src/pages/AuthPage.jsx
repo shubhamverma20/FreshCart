@@ -20,12 +20,12 @@ const PhoneIcon = () => (
 
 const EyeIcon = ({ open }) =>
   open ? (
-    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
     </svg>
   ) : (
-    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
     </svg>
   );
@@ -55,8 +55,6 @@ export default function AuthPage() {
   const [formLoading, setFormLoading] = useState(false);
   const [socialLoading, setSocialLoading] = useState(null);
   const [confirmationResult, setConfirmationResult] = useState(null);
-
-
 
   useEffect(() => {
     if (user) navigate('/dashboard');
@@ -203,192 +201,193 @@ export default function AuthPage() {
   const isBusy = formLoading || loading || socialLoading !== null;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-emerald-950 via-gray-900 to-gray-950 flex items-center justify-center p-4">
-      {/* Background decoration */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-40 -right-40 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl" />
-        <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-teal-500/10 rounded-full blur-3xl" />
+    <div className="min-h-screen bg-emerald-50/50 flex flex-col justify-center py-12 sm:px-6 lg:px-8 relative overflow-hidden font-sans">
+      
+      {/* Decorative Blob Backgrounds */}
+      <div className="absolute top-[-10%] left-[-10%] w-96 h-96 bg-emerald-200 rounded-full mix-blend-multiply filter blur-3xl opacity-50 animate-blob"></div>
+      <div className="absolute top-[20%] right-[-10%] w-96 h-96 bg-teal-200 rounded-full mix-blend-multiply filter blur-3xl opacity-50 animate-blob animation-delay-2000"></div>
+      <div className="absolute bottom-[-20%] left-[20%] w-96 h-96 bg-amber-100 rounded-full mix-blend-multiply filter blur-3xl opacity-50 animate-blob animation-delay-4000"></div>
+
+      <div className="sm:mx-auto sm:w-full sm:max-w-md relative z-10">
+        <div className="flex justify-center text-emerald-600 mb-6 drop-shadow-md cursor-pointer" onClick={() => navigate('/')}>
+           <ion-icon name="basket" style={{ fontSize: '48px' }}></ion-icon>
+        </div>
+        <h2 className="mt-2 text-center text-3xl font-extrabold text-gray-900 tracking-tight">
+          {view === 'verify-email' ? 'Verify Your Email' :
+           view === 'verify-phone' ? 'Verify Phone Number' :
+           view === 'signup' ? 'Create Your Account' :
+           view === 'forgot-password' ? 'Reset Password' :
+           view === 'reset-password' ? 'Create New Password' :
+           view === 'phone-login' ? 'Welcome Back' :
+           'Welcome to FreshCart'}
+        </h2>
+        <p className="mt-2 text-center text-sm text-gray-600 max-w-sm mx-auto">
+          {view === 'verify-email' ? `We sent an OTP to ${localStorage.getItem('signup_email') || email}` :
+           view === 'verify-phone' ? `Enter the SMS code sent to ${phoneNumber}` :
+           view === 'signup' ? 'Get fresh groceries delivered to your door in minutes' :
+           view === 'forgot-password' ? 'Enter your email to receive a secure reset code' :
+           view === 'reset-password' ? 'Enter the OTP and pick a strong new password' :
+           view === 'phone-login' ? 'Sign in securely using your mobile number' :
+           'Sign in to track orders, manage your cart, and checkout faster'}
+        </p>
       </div>
 
-      <div className="relative w-full max-w-md z-10">
-        {/* Logo */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center gap-3 mb-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center shadow-lg">
-              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-1.5 6M7 13l-1.5 6M17 19a1 1 0 100 2 1 1 0 000-2zM9 19a1 1 0 100 2 1 1 0 000-2z" />
-              </svg>
-            </div>
-            <span className="text-white text-2xl font-bold tracking-tight">FreshCart</span>
-          </div>
-        </div>
+      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-[440px] relative z-10">
+        <div className="bg-white/80 backdrop-blur-xl py-10 px-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)] sm:rounded-3xl sm:px-12 border border-white/50">
+          
+          {/* Social & Alternative Logins */}
+          {(view === 'login' || view === 'signup' || view === 'phone-login') && (
+            <div>
+              <div className="grid grid-cols-2 gap-4">
+                <button
+                  type="button"
+                  onClick={handleGoogleLogin}
+                  disabled={isBusy}
+                  className="w-full flex items-center justify-center px-4 py-2.5 border border-gray-200 rounded-xl shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 hover:shadow transition-all disabled:opacity-50"
+                >
+                  {socialLoading === 'google' ? (
+                    <div className="w-5 h-5 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <>
+                      <GoogleIcon />
+                      <span className="ml-2">Google</span>
+                    </>
+                  )}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setView(view === 'phone-login' ? 'login' : 'phone-login')}
+                  disabled={isBusy}
+                  className="w-full flex items-center justify-center px-4 py-2.5 border border-gray-200 rounded-xl shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 hover:shadow transition-all disabled:opacity-50"
+                >
+                  <PhoneIcon />
+                  <span className="ml-2">{view === 'phone-login' ? 'Use Email' : 'Use Phone'}</span>
+                </button>
+              </div>
 
-        {/* Card */}
-        <div className="rounded-3xl border border-slate-700/50 bg-slate-900/60 backdrop-blur-2xl shadow-2xl overflow-hidden ring-1 ring-white/5">
-          <div className="h-1.5 w-full bg-gradient-to-r from-emerald-400 via-teal-400 to-cyan-400" />
-
-          <div className="p-8 sm:p-10">
-            {/* Title */}
-            <div className="text-center mb-8">
-              <h1 className="text-white text-2xl font-bold mb-2">
-                {view === 'verify-email' ? '📩 Verify Your Email' :
-                 view === 'verify-phone' ? '📱 Verify Phone Number' :
-                 view === 'signup' ? '🚀 Create Account' :
-                 view === 'forgot-password' ? '🔑 Reset Password' :
-                 view === 'reset-password' ? '🔐 Create New Password' :
-                 view === 'phone-login' ? '📱 Phone Login' :
-                 '👋 Welcome Back'}
-              </h1>
-              <p className="text-gray-400 text-sm">
-                {view === 'verify-email' ? `Check your inbox for OTP sent to ${localStorage.getItem('signup_email') || email}` :
-                 view === 'verify-phone' ? `Enter the SMS code sent to ${phoneNumber}` :
-                 view === 'signup' ? 'Join FreshCart for fresh grocery deliveries' :
-                 view === 'forgot-password' ? 'Enter your email to receive a reset code' :
-                 view === 'reset-password' ? 'Enter the OTP and your new password' :
-                 view === 'phone-login' ? 'Sign in securely using your mobile number' :
-                 'Sign in to track orders and shop faster'}
-              </p>
-            </div>
-
-            {/* Social & Alternative Logins */}
-            {(view === 'login' || view === 'signup' || view === 'phone-login') && (
-              <>
-                <div className="grid grid-cols-2 gap-3 mb-6">
-                  {/* Google */}
-                  <button
-                    type="button"
-                    onClick={handleGoogleLogin}
-                    disabled={isBusy}
-                    className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl border border-slate-700/50 bg-slate-800/40 hover:bg-slate-700 text-white text-sm font-semibold transition-all shadow-sm hover:shadow-md disabled:opacity-50"
-                  >
-                    {socialLoading === 'google' ? <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin" /> : <GoogleIcon />}
-                    <span>Google</span>
-                  </button>
-                  {/* Toggle Phone/Email */}
-                  <button
-                    type="button"
-                    onClick={() => setView(view === 'phone-login' ? 'login' : 'phone-login')}
-                    disabled={isBusy}
-                    className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl border border-slate-700/50 bg-slate-800/40 hover:bg-slate-700 text-white text-sm font-semibold transition-all shadow-sm hover:shadow-md disabled:opacity-50"
-                  >
-                    <PhoneIcon />
-                    <span>{view === 'phone-login' ? 'Use Email' : 'Use Phone'}</span>
-                  </button>
+              <div className="mt-8 mb-8 relative">
+                <div className="absolute inset-0 flex items-center" aria-hidden="true">
+                  <div className="w-full border-t border-gray-200" />
                 </div>
-
-                <div className="relative flex items-center mb-6">
-                  <div className="flex-1 border-t border-white/10" />
-                  <span className="px-4 text-gray-500 text-xs font-medium uppercase tracking-widest">
-                    or
-                  </span>
-                  <div className="flex-1 border-t border-white/10" />
+                <div className="relative flex justify-center text-sm">
+                  <span className="px-3 bg-white text-gray-500 font-medium">Or continue with</span>
                 </div>
-              </>
-            )}
+              </div>
+            </div>
+          )}
 
-            {/* Alert */}
-            {alert && (
-              <div className={`mb-5 px-4 py-3 rounded-xl text-sm font-medium border flex items-start gap-2.5 ${alert.type === 'success' ? 'bg-emerald-500/10 border-emerald-400/30 text-emerald-300' : 'bg-red-500/10 border-red-400/30 text-red-300'}`}>
-                <span className="mt-0.5">{alert.type === 'success' ? '✓' : '⚠'}</span>
-                <span>{alert.message}</span>
+          {/* Alert */}
+          {alert && (
+            <div className={`mb-6 p-4 rounded-xl text-sm font-medium flex items-start gap-3 shadow-sm border ${alert.type === 'success' ? 'bg-emerald-50 text-emerald-800 border-emerald-100' : 'bg-red-50 text-red-800 border-red-100'}`}>
+              <div className="mt-0.5">{alert.type === 'success' ? '✓' : '⚠'}</div>
+              <div>{alert.message}</div>
+            </div>
+          )}
+
+          <form className="space-y-5" onSubmit={view === 'phone-login' ? handleSendPhoneOtp : handleSubmit}>
+            
+            {/* Name Field */}
+            {view === 'signup' && (
+              <div>
+                <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1.5 ml-1">Full Name</label>
+                <div className="mt-1">
+                  <input id="name" type="text" placeholder="John Doe" value={name} onChange={(e) => setName(e.target.value)} required
+                    className="appearance-none block w-full px-4 py-3 border border-gray-200 rounded-xl shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 sm:text-sm transition-colors bg-white" />
+                </div>
               </div>
             )}
 
-
-            {/* Form */}
-            <form onSubmit={view === 'phone-login' ? handleSendPhoneOtp : handleSubmit} className="space-y-4">
-              
-              {/* Name Field */}
-              {view === 'signup' && (
-                <div>
-                  <label className="block text-gray-300 text-xs font-semibold uppercase mb-2 ml-1">Full Name</label>
-                  <input type="text" placeholder="e.g. John Doe" value={name} onChange={(e) => setName(e.target.value)} required
-                    className="w-full px-4 py-3.5 rounded-xl bg-slate-800/80 border border-slate-700/50 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-emerald-400 focus:bg-slate-800 focus:ring-4 focus:ring-emerald-400/20 transition-all" />
+            {/* Email Field */}
+            {['login', 'signup', 'forgot-password'].includes(view) && (
+              <div>
+                <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1.5 ml-1">Email address</label>
+                <div className="mt-1">
+                  <input id="email" type="email" placeholder="name@example.com" value={email} onChange={(e) => setEmail(e.target.value)} required
+                    className="appearance-none block w-full px-4 py-3 border border-gray-200 rounded-xl shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 sm:text-sm transition-colors bg-white" />
                 </div>
-              )}
+              </div>
+            )}
 
-              {/* Email Field */}
-              {['login', 'signup', 'forgot-password'].includes(view) && (
-                <div>
-                  <label className="block text-gray-300 text-xs font-semibold uppercase mb-2 ml-1">Email Address</label>
-                  <input type="email" placeholder="name@example.com" value={email} onChange={(e) => setEmail(e.target.value)} required
-                    className="w-full px-4 py-3.5 rounded-xl bg-slate-800/80 border border-slate-700/50 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-emerald-400 focus:bg-slate-800 focus:ring-4 focus:ring-emerald-400/20 transition-all" />
+            {/* Phone Number Field */}
+            {view === 'phone-login' && (
+              <div>
+                <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-1.5 ml-1">Phone Number</label>
+                <div className="mt-1">
+                  <input id="phone" type="tel" placeholder="+91 9876543210" value={phoneNumber} onChange={(e) => setPhoneNumber(e.target.value)} required
+                    className="appearance-none block w-full px-4 py-3 border border-gray-200 rounded-xl shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 sm:text-sm transition-colors bg-white" />
                 </div>
-              )}
+              </div>
+            )}
 
-              {/* Phone Number Field */}
-              {view === 'phone-login' && (
-                <div>
-                  <label className="block text-gray-300 text-xs font-semibold uppercase mb-2 ml-1">Phone Number</label>
-                  <input type="tel" placeholder="+91 9876543210" value={phoneNumber} onChange={(e) => setPhoneNumber(e.target.value)} required
-                    className="w-full px-4 py-3.5 rounded-xl bg-slate-800/80 border border-slate-700/50 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-emerald-400 focus:bg-slate-800 focus:ring-4 focus:ring-emerald-400/20 transition-all" />
-                </div>
-              )}
-
-              {/* Password Field */}
-              {['login', 'signup', 'reset-password'].includes(view) && (
-                <div>
-                  <div className="flex justify-between items-center mb-2 ml-1 pr-1">
-                    <label className="block text-gray-300 text-xs font-semibold uppercase">
-                      {view === 'reset-password' ? 'New Password' : 'Password'}
-                    </label>
-                    {view === 'login' && (
-                      <button type="button" onClick={() => { setView('forgot-password'); hideAlert(); }} className="text-emerald-400 hover:text-emerald-300 text-xs font-semibold transition-colors">
-                        Forgot?
-                      </button>
-                    )}
-                  </div>
-                  <div className="relative">
-                    <input type={showPassword ? 'text' : 'password'} placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} required
-                      className="w-full px-4 py-3.5 pr-12 rounded-xl bg-slate-800/80 border border-slate-700/50 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-emerald-400 focus:bg-slate-800 focus:ring-4 focus:ring-emerald-400/20 transition-all" />
-                    <button type="button" onClick={() => setShowPassword((p) => !p)} className="absolute right-3 top-1/2 -translate-y-1/2 p-2 text-slate-400 hover:text-white transition-all">
-                      <EyeIcon open={showPassword} />
+            {/* Password Field */}
+            {['login', 'signup', 'reset-password'].includes(view) && (
+              <div>
+                <div className="flex items-center justify-between mb-1.5 ml-1 pr-1">
+                  <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+                    {view === 'reset-password' ? 'New Password' : 'Password'}
+                  </label>
+                  {view === 'login' && (
+                    <button type="button" onClick={() => { setView('forgot-password'); hideAlert(); }} className="text-sm font-semibold text-emerald-600 hover:text-emerald-500 transition-colors">
+                      Forgot password?
                     </button>
-                  </div>
+                  )}
                 </div>
-              )}
-
-              {/* OTP Field */}
-              {['verify-email', 'verify-phone', 'reset-password'].includes(view) && (
-                <div>
-                  <label className="block text-gray-300 text-xs font-semibold uppercase mb-2 ml-1">6-Digit OTP Code</label>
-                  <input type="text" inputMode="numeric" maxLength={6} placeholder="123456" value={otp} onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))} required
-                    className="w-full px-4 py-4 rounded-xl bg-slate-800/80 border border-slate-700/50 text-emerald-400 placeholder-slate-600 text-center tracking-[1em] text-2xl font-bold focus:outline-none focus:border-emerald-400 focus:bg-slate-800 focus:ring-4 focus:ring-emerald-400/20 transition-all" />
+                <div className="mt-1 relative">
+                  <input id="password" type={showPassword ? 'text' : 'password'} placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} required
+                    className="appearance-none block w-full px-4 py-3 border border-gray-200 rounded-xl shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 sm:text-sm transition-colors pr-12 bg-white" />
+                  <button type="button" onClick={() => setShowPassword((p) => !p)} className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-gray-600 transition-colors">
+                    <EyeIcon open={showPassword} />
+                  </button>
                 </div>
-              )}
+              </div>
+            )}
 
-              {/* Submit Button */}
-              <button type="submit" disabled={isBusy}
-                className="w-full py-3.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-900 font-bold text-sm uppercase tracking-wide shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/40 hover:-translate-y-0.5 transition-all duration-300 flex items-center justify-center gap-3 mt-6 disabled:opacity-60 disabled:cursor-not-allowed">
+            {/* OTP Field */}
+            {['verify-email', 'verify-phone', 'reset-password'].includes(view) && (
+              <div>
+                <label htmlFor="otp" className="block text-sm font-medium text-gray-700 mb-1.5 ml-1 text-center">6-Digit Code</label>
+                <div className="mt-1">
+                  <input id="otp" type="text" inputMode="numeric" maxLength={6} placeholder="------" value={otp} onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))} required
+                    className="block w-full px-4 py-4 text-center text-2xl font-bold tracking-[0.5em] border border-gray-200 rounded-xl shadow-sm placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 text-emerald-600 transition-colors bg-white" />
+                </div>
+              </div>
+            )}
+
+            <div className="pt-2">
+              <button
+                type="submit"
+                disabled={isBusy}
+                className="w-full flex justify-center py-3.5 px-4 border border-transparent rounded-xl shadow-md text-sm font-bold text-white bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 transition-all hover:shadow-lg disabled:opacity-70 disabled:cursor-not-allowed"
+              >
                 {formLoading ? (
-                  <><div className="w-5 h-5 border-2 border-slate-900/30 border-t-slate-900 rounded-full animate-spin" /> Processing...</>
+                  <><div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2" /> Processing...</>
                 ) : view === 'verify-email' ? 'Verify Email'
                   : view === 'verify-phone' ? 'Verify Phone'
                   : view === 'signup' ? 'Create Account'
                   : view === 'forgot-password' ? 'Send Reset Code'
                   : view === 'reset-password' ? 'Update Password'
                   : view === 'phone-login' ? 'Send SMS Code'
-                  : 'Sign In'}
+                  : 'Sign in to FreshCart'}
               </button>
-            </form>
-
-            {/* Footer Links */}
-            <div className="mt-6 text-center text-sm text-gray-500">
-              {view === 'verify-email' ? (
-                <span>Didn't get the code? <button onClick={() => requestOTP(email)} className="text-emerald-400 hover:text-emerald-300 font-semibold">Resend Email OTP</button></span>
-              ) : ['forgot-password', 'reset-password'].includes(view) ? (
-                <span>Remember your password? <button onClick={() => setView('login')} className="text-emerald-400 hover:text-emerald-300 font-semibold">Sign in</button></span>
-              ) : view === 'signup' ? (
-                <span>Already have an account? <button onClick={() => setView('login')} className="text-emerald-400 hover:text-emerald-300 font-semibold">Sign in</button></span>
-              ) : (
-                <span>New to FreshCart? <button onClick={() => setView('signup')} className="text-emerald-400 hover:text-emerald-300 font-semibold">Create account</button></span>
-              )}
             </div>
+          </form>
+
+          {/* Footer Nav */}
+          <div className="mt-8 text-center">
+            {view === 'verify-email' ? (
+              <p className="text-sm text-gray-600">Didn't get the code? <button onClick={() => requestOTP(email)} className="font-semibold text-emerald-600 hover:text-emerald-500">Resend Code</button></p>
+            ) : ['forgot-password', 'reset-password'].includes(view) ? (
+              <p className="text-sm text-gray-600">Remember your password? <button onClick={() => setView('login')} className="font-semibold text-emerald-600 hover:text-emerald-500">Sign in instead</button></p>
+            ) : view === 'signup' ? (
+              <p className="text-sm text-gray-600">Already have an account? <button onClick={() => setView('login')} className="font-semibold text-emerald-600 hover:text-emerald-500">Sign in</button></p>
+            ) : (
+              <p className="text-sm text-gray-600">New to FreshCart? <button onClick={() => setView('signup')} className="font-semibold text-emerald-600 hover:text-emerald-500">Create an account</button></p>
+            )}
           </div>
         </div>
       </div>
-
-      {/* Hidden reCAPTCHA container moved outside to prevent layout shift */}
+      
+      {/* Hidden reCAPTCHA container */}
       <div id="recaptcha-container" className="fixed bottom-0 right-0 z-50"></div>
     </div>
   );
