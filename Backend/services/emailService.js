@@ -98,7 +98,8 @@ async function sendWelcomeEmail(userEmail, userName) {
     </body>
     </html>
   `;
-  return sendEmail({ toEmail, toName: userName, subject, htmlContent });
+ return sendEmail({ toEmail: userEmail, toName: userName, subject, htmlContent });
+
 }
 
 /**
@@ -141,7 +142,8 @@ async function sendOTPEmail(userEmail, otp) {
     </body>
     </html>
   `;
-  return sendEmail({ toEmail, subject, htmlContent });
+ return sendEmail({ toEmail: userEmail, subject, htmlContent });
+
 }
 
 /**
@@ -219,7 +221,8 @@ async function sendOrderConfirmationEmail(userEmail, orderDetails) {
     </body>
     </html>
   `;
-  return sendEmail({ toEmail, subject, htmlContent });
+  return sendEmail({ toEmail: userEmail, subject, htmlContent });
+
 }
 
 /**
@@ -262,7 +265,8 @@ async function sendPasswordResetEmail(userEmail, otp) {
     </body>
     </html>
   `;
-  return sendEmail({ toEmail, subject, htmlContent });
+  return sendEmail({ toEmail: userEmail, subject, htmlContent });
+
 }
 
 module.exports = {
