@@ -142,6 +142,7 @@ exports.requestOTP = async (req, res) => {
 
     user.otpCode = otp;
     user.otpExpires = otpExpires;
+    user.otpAttempts = 0;
     await user.save();
     console.log(`[Auth Controller] Stored verification code in DB for: ${email}`);
 
@@ -187,20 +188,39 @@ exports.verifyOTP = async (req, res) => {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    // Check if OTP matches and has not expired
-    if (!user.otpCode || user.otpCode !== otp) {
-      console.warn(`[Auth Controller] OTP verify failed: Code mismatch for ${email}. Expected: ${user.otpCode}, Received: ${otp}`);
-      return res.status(400).json({ message: 'Invalid verification code' });
+    if (!user.otpCode) {
+      return res.status(400).json({ message: 'No OTP requested or OTP expired' });
     }
 
     if (new Date() > user.otpExpires) {
+      user.otpCode = undefined;
+      user.otpExpires = undefined;
+      user.otpAttempts = 0;
+      await user.save();
       console.warn(`[Auth Controller] OTP verify failed: Code expired for ${email}. Expiration: ${user.otpExpires}`);
       return res.status(400).json({ message: 'Verification code has expired' });
+    }
+
+    if (user.otpAttempts >= 5) {
+      user.otpCode = undefined;
+      user.otpExpires = undefined;
+      user.otpAttempts = 0;
+      await user.save();
+      return res.status(400).json({ message: 'Too many invalid attempts. Please request a new OTP.' });
+    }
+
+    // Check if OTP matches
+    if (user.otpCode !== otp.toString().trim()) {
+      user.otpAttempts += 1;
+      await user.save();
+      console.warn(`[Auth Controller] OTP verify failed: Code mismatch for ${email}. Expected: ${user.otpCode}, Received: ${otp}`);
+      return res.status(400).json({ message: 'Invalid verification code' });
     }
 
     user.isVerified = true;
     user.otpCode = undefined;
     user.otpExpires = undefined;
+    user.otpAttempts = 0;
     await user.save();
     console.log(`[Auth Controller] User email successfully verified: ${email}`);
 
@@ -292,6 +312,7 @@ exports.requestPasswordReset = async (req, res) => {
     const otp = generateOTP();
     user.otpCode = otp;
     user.otpExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+    user.otpAttempts = 0;
     await user.save();
 
     console.log(`[Auth Controller] Sending password reset OTP to ${email}`);
@@ -327,18 +348,37 @@ exports.resetPassword = async (req, res) => {
       return res.status(400).json({ message: 'Invalid request' });
     }
 
-    if (user.otpCode !== otp.toString().trim()) {
-      return res.status(400).json({ message: 'Invalid verification code' });
+    if (!user.otpCode) {
+      return res.status(400).json({ message: 'No OTP requested or OTP expired' });
     }
 
     if (new Date() > user.otpExpires) {
+      user.otpCode = undefined;
+      user.otpExpires = undefined;
+      user.otpAttempts = 0;
+      await user.save();
       return res.status(400).json({ message: 'Verification code has expired' });
+    }
+
+    if (user.otpAttempts >= 5) {
+      user.otpCode = undefined;
+      user.otpExpires = undefined;
+      user.otpAttempts = 0;
+      await user.save();
+      return res.status(400).json({ message: 'Too many invalid attempts. Please request a new OTP.' });
+    }
+
+    if (user.otpCode !== otp.toString().trim()) {
+      user.otpAttempts += 1;
+      await user.save();
+      return res.status(400).json({ message: 'Invalid verification code' });
     }
 
     const hashedPassword = await bcrypt.hash(newPassword, 12);
     user.password = hashedPassword;
     user.otpCode = undefined;
     user.otpExpires = undefined;
+    user.otpAttempts = 0;
     await user.save();
 
     console.log(`[Auth Controller] Password reset successfully for: ${email}`);
