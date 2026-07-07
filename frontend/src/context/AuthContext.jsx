@@ -282,18 +282,6 @@ export const AuthProvider = ({ children }) => {
     setLoading(true);
     setError(null);
     try {
-      // DEV BYPASS: Skip Firebase for the dummy test number to avoid billing issues
-      if (phoneNumber === '+919999999999' || phoneNumber === '+919263164858') {
-        // Return a fake confirmation result that intercepts confirm()
-        return { 
-          success: true, 
-          confirmationResult: { 
-            isDevBypass: true, 
-            phoneNumber 
-          } 
-        };
-      }
-
       const confirmationResult = await signInWithPhoneNumber(auth, phoneNumber, appVerifier);
       return { success: true, confirmationResult };
     } catch (err) {
@@ -311,14 +299,8 @@ export const AuthProvider = ({ children }) => {
     try {
       let firebaseUser;
       
-      // Handle DEV BYPASS mock confirmation
-      if (confirmationResult.isDevBypass) {
-        if (otp !== '123456') throw new Error('Invalid OTP code');
-        firebaseUser = { phoneNumber: confirmationResult.phoneNumber, uid: 'dev-bypass-uid-999' };
-      } else {
-        const result = await confirmationResult.confirm(otp);
-        firebaseUser = result.user;
-      }
+      const result = await confirmationResult.confirm(otp);
+      firebaseUser = result.user;
       
       const backendData = await syncFirebaseUser(firebaseUser, 'phone');
       
