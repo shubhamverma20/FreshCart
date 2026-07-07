@@ -38,22 +38,7 @@ exports.signup = async (req, res) => {
       return res.status(400).json({ message: 'Password must be at least 6 characters long' });
     }
 
-    // Mock database check when offline
-    if (mongoose.connection.readyState !== 1) {
-      console.warn("[Auth Controller] Database is offline. Running in Mock Mode for signup.");
-      console.log(`[Auth Controller] Mock signup successful for: ${email}`);
-      console.log(`[Auth Controller] Triggering Welcome Email to ${email}`);
-      sendWelcomeEmail(email, name).catch(err => 
-        console.error("[Auth Controller] Welcome Email background error:", err.message)
-      );
 
-      const token = jwt.sign({ id: 'mock-user-id' }, process.env.JWT_SECRET || 'supersecret123', { expiresIn: '1h' });
-      return res.status(201).json({ 
-        message: 'Registration successful (Mock Mode)! Welcome email sent.',
-        token, 
-        user: { id: 'mock-user-id', name, email, isVerified: false } 
-      });
-    }
 
     const existingUser = await User.findOne({ email });
     if (existingUser) {
@@ -103,16 +88,7 @@ exports.login = async (req, res) => {
       return res.status(400).json({ message: 'Password is required' });
     }
 
-    // Mock database check when offline
-    if (mongoose.connection.readyState !== 1) {
-      console.warn("[Auth Controller] Database is offline. Running in Mock Mode for login.");
-      console.log(`[Auth Controller] Mock login successful for: ${email}`);
-      const token = jwt.sign({ id: 'mock-user-id' }, process.env.JWT_SECRET || 'supersecret123', { expiresIn: '1h' });
-      return res.status(200).json({ 
-        token, 
-        user: { id: 'mock-user-id', name: email.split('@')[0], email, isVerified: true } 
-      });
-    }
+
 
     const user = await User.findOne({ email });
     if (!user) {
@@ -153,24 +129,7 @@ exports.requestOTP = async (req, res) => {
       return res.status(400).json({ message: 'A valid email address is required' });
     }
 
-    // Mock database check when offline
-    if (mongoose.connection.readyState !== 1) {
-      console.warn("[Auth Controller] Database is offline. Running in Mock Mode for OTP request.");
-      const otp = generateOTP();
-      console.log(`[Auth Controller] Mock generated OTP: ${otp} for ${email}`);
-      
-      global.mockOtpCache = global.mockOtpCache || {};
-      global.mockOtpCache[email] = otp;
 
-      console.log(`[Auth Controller] Dispatching OTP Email to ${email}`);
-      const emailRes = await sendOTPEmail(email, otp);
-      if (!emailRes.success) {
-        console.error(`[Auth Controller] OTP email dispatch failed: ${emailRes.error || 'Unknown error'}`);
-        return res.status(500).json({ message: 'Failed to send verification email (Mock Mode)' });
-      }
-
-      return res.status(200).json({ message: 'Verification code sent to your email (Mock Mode)' });
-    }
 
     const user = await User.findOne({ email });
     if (!user) {
@@ -220,20 +179,7 @@ exports.verifyOTP = async (req, res) => {
       return res.status(400).json({ message: 'A 6-digit verification code is required' });
     }
 
-    // Mock database check when offline
-    if (mongoose.connection.readyState !== 1) {
-      console.warn("[Auth Controller] Database is offline. Running in Mock Mode for OTP verification.");
-      global.mockOtpCache = global.mockOtpCache || {};
-      const expectedOtp = global.mockOtpCache[email];
-      
-      if (otp !== '123456' && expectedOtp && otp !== expectedOtp) {
-        console.warn(`[Auth Controller] Mock OTP verify failed: Code mismatch for ${email}. Expected: ${expectedOtp || '123456'}, Received: ${otp}`);
-        return res.status(400).json({ message: 'Invalid verification code' });
-      }
 
-      console.log(`[Auth Controller] Mock email successfully verified for: ${email}`);
-      return res.status(200).json({ message: 'Email verified successfully (Mock Mode)', isVerified: true });
-    }
 
     const user = await User.findOne({ email });
     if (!user) {
@@ -280,16 +226,7 @@ exports.firebaseSync = async (req, res) => {
 
     const lastLogin = new Date();
 
-    // Mock mode when DB is offline
-    if (mongoose.connection.readyState !== 1) {
-      console.warn("[Auth Controller] Database is offline. Running in Mock Mode for firebaseSync.");
-      const token = jwt.sign({ id: 'mock-firebase-user' }, process.env.JWT_SECRET || 'supersecret123', { expiresIn: '7d' });
-      return res.status(200).json({
-        message: 'Firebase sync successful (Mock Mode)',
-        token,
-        user: { name, email, phone, profilePicture, provider, firebaseUid, isVerified: true, lastLogin }
-      });
-    }
+
 
     // Upsert: search by email (if exists) or phone (if exists)
     const query = email ? { email } : { phone };
@@ -344,9 +281,7 @@ exports.requestPasswordReset = async (req, res) => {
       return res.status(400).json({ message: 'A valid email address is required' });
     }
 
-    if (mongoose.connection.readyState !== 1) {
-      return res.status(200).json({ message: 'Password reset OTP sent (Mock Mode)' });
-    }
+
 
     const user = await User.findOne({ email });
     if (!user) {
@@ -385,9 +320,7 @@ exports.resetPassword = async (req, res) => {
       return res.status(400).json({ message: 'Password must be at least 6 characters long' });
     }
 
-    if (mongoose.connection.readyState !== 1) {
-      return res.status(200).json({ message: 'Password reset successful (Mock Mode)' });
-    }
+
 
     const user = await User.findOne({ email });
     if (!user) {
