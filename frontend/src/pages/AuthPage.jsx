@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
@@ -42,7 +42,7 @@ export default function AuthPage() {
   const [searchParams] = useSearchParams();
 
   // 'login' | 'signup' | 'verify-email' | 'forgot-password' | 'reset-password' | 'phone-login' | 'verify-phone'
-  const [view, setView] = useState('login');
+  const [view, setView] = useState(() => searchParams.get('mode') === 'signup' ? 'signup' : 'login');
 
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -56,10 +56,7 @@ export default function AuthPage() {
   const [socialLoading, setSocialLoading] = useState(null);
   const [confirmationResult, setConfirmationResult] = useState(null);
 
-  useEffect(() => {
-    const mode = searchParams.get('mode');
-    if (mode === 'signup') setView('signup');
-  }, [searchParams]);
+
 
   useEffect(() => {
     if (user) navigate('/dashboard');
@@ -105,7 +102,7 @@ export default function AuthPage() {
       } else {
         showAlert(res.error || 'Failed to send SMS OTP.', 'error');
       }
-    } catch (err) {
+    } catch {
       showAlert('Error setting up reCAPTCHA.', 'error');
     } finally {
       setFormLoading(false);

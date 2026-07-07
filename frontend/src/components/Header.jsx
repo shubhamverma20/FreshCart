@@ -57,7 +57,7 @@ export default function Header({ searchVal, onSearchChange }) {
           {user ? (
             <>
               <span className="nav-link" style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
-                Hi, {user.name.split(' ')[0]}
+                Hi, {user.name ? user.name.split(' ')[0] : 'User'}
               </span>
               <button
                 onClick={() => {

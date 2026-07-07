@@ -1,12 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
+import { initializeRazorpayPayment } from '../services/paymentService';
+import useRazorpayLoader from '../hooks/useRazorpayLoader';
 
 export default function CartCheckout() {
   const { cart, cartTotal, clearCart } = useCart();
   const { user, apiBase } = useAuth();
   const navigate = useNavigate();
+  const isRazorpayLoaded = useRazorpayLoader();
 
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
@@ -20,19 +23,19 @@ export default function CartCheckout() {
   const [loading, setLoading] = useState(false);
   const [successOrder, setSuccessOrder] = useState(null); // Contains placed order details
 
-  // Pre-fill fields if user is logged in
-  useEffect(() => {
-    if (user) {
-      if (user.email) setEmail(user.email);
-      if (user.name) {
-        const nameParts = user.name.trim().split(' ');
-        setFirstName(nameParts[0] || '');
-        if (nameParts.length > 1) {
-          setLastName(nameParts.slice(1).join(' '));
-        }
+  const [prevUser, setPrevUser] = useState(null);
+  
+  if (user && user !== prevUser) {
+    setPrevUser(user);
+    if (user.email) setEmail(user.email);
+    if (user.name) {
+      const nameParts = user.name.trim().split(' ');
+      setFirstName(nameParts[0] || '');
+      if (nameParts.length > 1) {
+        setLastName(nameParts.slice(1).join(' '));
       }
     }
-  }, [user]);
+  }
 
   const showAlert = (message, type) => {
     setAlert({ message, type });
@@ -102,90 +105,36 @@ export default function CartCheckout() {
         } else {
           showAlert(data.message || "Failed to place order.", "error");
         }
-        return;
-      }
-
-      // If Card or UPI, trigger Razorpay Gateway
-      const rzpRes = await fetch(`${apiBase}/api/orders/create-razorpay-order`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          orderAmount: total
-        })
-      });
-
-      const rzpData = await rzpRes.json();
-      if (!rzpRes.ok) {
-        showAlert(rzpData.message || "Failed to initialize payment gateway.", "error");
         setLoading(false);
         return;
       }
 
-      const options = {
-        key: rzpData.key_id,
-        amount: rzpData.order.amount,
-        currency: rzpData.order.currency,
-        name: "FreshCart",
-        description: "Grocery Order Payment",
-        order_id: rzpData.order.id,
-        handler: async function (response) {
-          try {
-            // Verify payment
-            const verifyRes = await fetch(`${apiBase}/api/orders/verify-razorpay-payment`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                razorpay_order_id: response.razorpay_order_id,
-                razorpay_payment_id: response.razorpay_payment_id,
-                razorpay_signature: response.razorpay_signature
-              })
-            });
+      // If Card or UPI, trigger Razorpay Gateway
+      if (!isRazorpayLoaded) {
+        showAlert("Payment gateway is still loading. Please wait a moment and try again.", "error");
+        setLoading(false);
+        return;
+      }
 
-            const verifyData = await verifyRes.json();
-            if (verifyRes.ok && verifyData.success) {
-              // Payment verified, place final order
-              const placeRes = await fetch(`${apiBase}/api/orders/place`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-              });
-              
-              const placeData = await placeRes.json();
-              if (placeRes.ok) {
-                setSuccessOrder(placeData.order);
-                clearCart();
-              } else {
-                showAlert("Payment succeeded but order placement failed. Please contact support.", "error");
-              }
-            } else {
-              showAlert(verifyData.message || "Payment verification failed.", "error");
-            }
-          } catch (err) {
-            console.error("Verification error:", err);
-            showAlert("An error occurred during payment verification.", "error");
-          }
+      initializeRazorpayPayment({
+        apiBase,
+        items,
+        orderDetails: payload,
+        customer: { firstName, lastName, email, phone },
+        onSuccess: (order) => {
+          setSuccessOrder(order);
+          clearCart();
+          setLoading(false);
         },
-        prefill: {
-          name: `${firstName} ${lastName}`,
-          email: email,
-          contact: phone
-        },
-        theme: {
-          color: "#10b981"
+        onFailure: (message) => {
+          showAlert(message, "error");
+          setLoading(false);
         }
-      };
-
-      const rzp = new window.Razorpay(options);
-      rzp.on('payment.failed', function (response) {
-        console.error("Razorpay Error:", response.error);
-        showAlert(response.error.description || "Payment failed or was cancelled.", "error");
       });
-      rzp.open();
 
     } catch (err) {
       console.error("[Checkout] Order placement failed:", err);
-      showAlert("Network connection error. Check if the server is running.", "error");
-    } finally {
+      showAlert(`Checkout Error: ${err.message}`, "error");
       setLoading(false);
     }
   };

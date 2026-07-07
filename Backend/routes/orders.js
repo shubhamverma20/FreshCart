@@ -11,6 +11,7 @@ router.post('/create-cashfree-order', orderController.createCashfreeOrder);
 // Routes for Razorpay integration
 router.post('/create-razorpay-order', orderController.createRazorpayOrder);
 router.post('/verify-razorpay-payment', orderController.verifyRazorpayPayment);
+router.post('/release-inventory', orderController.releaseInventory);
 
 // Route to get all orders (admin panel)
 router.get('/', orderController.getOrders);

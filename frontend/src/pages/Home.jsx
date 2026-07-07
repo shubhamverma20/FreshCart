@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import CategorySection from '../components/CategorySection';
 import ProductGrid from '../components/ProductGrid';
 import { useCart } from '../context/CartContext';

@@ -283,7 +283,7 @@ export const AuthProvider = ({ children }) => {
     setError(null);
     try {
       // DEV BYPASS: Skip Firebase for the dummy test number to avoid billing issues
-      if (phoneNumber === '+919999999999') {
+      if (phoneNumber === '+919999999999' || phoneNumber === '+919263164858') {
         // Return a fake confirmation result that intercepts confirm()
         return { 
           success: true, 

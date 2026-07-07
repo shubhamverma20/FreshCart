@@ -14,7 +14,7 @@ const orderSchema = new mongoose.Schema(
         },
         items: [
             {
-                id: { type: Number, required: true },
+                id: { type: String, required: false },
                 name: { type: String, required: true },
                 price: { type: Number, required: true },
                 quantity: { type: Number, required: true }
@@ -32,6 +32,20 @@ const orderSchema = new mongoose.Schema(
             type: String,
             required: true,
             default: 'upi'
+        },
+        paymentStatus: {
+            type: String,
+            enum: ['Pending', 'pending_payment', 'Paid', 'Failed', 'cancelled'],
+            default: 'Pending'
+        },
+        razorpayOrderId: {
+            type: String
+        },
+        razorpayPaymentId: {
+            type: String
+        },
+        razorpaySignature: {
+            type: String
         }
     },
     { timestamps: true }

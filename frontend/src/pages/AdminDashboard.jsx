@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
@@ -32,7 +32,7 @@ export default function AdminDashboard() {
   const [submitting, setSubmitting] = useState(false);
 
   // Fetch Products
-  const fetchProducts = async () => {
+  const fetchProducts = useCallback(async () => {
     setLoadingProducts(true);
     try {
       const res = await fetch(`${apiBase}/api/products`);
@@ -45,10 +45,10 @@ export default function AdminDashboard() {
     } finally {
       setLoadingProducts(false);
     }
-  };
+  }, [apiBase]);
 
   // Fetch Orders
-  const fetchOrders = async () => {
+  const fetchOrders = useCallback(async () => {
     setLoadingOrders(true);
     try {
       const res = await fetch(`${apiBase}/api/orders`);
@@ -61,12 +61,12 @@ export default function AdminDashboard() {
     } finally {
       setLoadingOrders(false);
     }
-  };
+  }, [apiBase]);
 
   useEffect(() => {
     fetchProducts();
     fetchOrders();
-  }, [apiBase]);
+  }, [fetchProducts, fetchOrders]);
 
   // Handle Add Product Submit
   const handleAddProductSubmit = async (e) => {
@@ -959,9 +959,26 @@ export default function AdminDashboard() {
                   type="file" 
                   accept="image/*"
                   className="admin-form-input"
-                  style={{ padding: '8px 10px' }}
+                  style={{ padding: '8px 10px', marginBottom: newProductImage ? '10px' : '0' }}
                   onChange={(e) => setNewProductImage(e.target.files[0])}
                 />
+                {newProductImage && (
+                  <div style={{ 
+                    marginTop: '10px', 
+                    padding: '10px', 
+                    background: '#f8fafc', 
+                    borderRadius: '8px', 
+                    display: 'inline-block',
+                    border: '1px dashed #cbd5e1'
+                  }}>
+                    <p style={{ margin: '0 0 5px 0', fontSize: '12px', color: '#64748b' }}>Image Preview</p>
+                    <img 
+                      src={URL.createObjectURL(newProductImage)} 
+                      alt="Preview" 
+                      style={{ maxHeight: '100px', borderRadius: '4px', objectFit: 'contain' }}
+                    />
+                  </div>
+                )}
               </div>
 
               {modalAlert && (

@@ -33,6 +33,15 @@ const productSchema = new mongoose.Schema({
   badge: {
     type: String,
   },
+  stock: {
+    type: Number,
+    required: true,
+    default: 100 // Defaulting to 100 for existing items
+  },
+  reservedStock: {
+    type: Number,
+    default: 0
+  },
   createdAt: {
     type: Date,
     default: Date.now,
