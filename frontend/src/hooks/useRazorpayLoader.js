@@ -1,11 +1,10 @@
 import { useState, useEffect } from 'react';
 
 export default function useRazorpayLoader() {
-  const [isLoaded, setIsLoaded] = useState(false);
+  const [isLoaded, setIsLoaded] = useState(() => typeof window !== 'undefined' && !!window.Razorpay);
 
   useEffect(() => {
-    if (window.Razorpay) {
-      setIsLoaded(true);
+    if (typeof window !== 'undefined' && window.Razorpay) {
       return;
     }
 

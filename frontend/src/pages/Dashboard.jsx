@@ -1,194 +1,392 @@
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-
-const PROVIDER_COLORS = {
-  google: 'from-red-500 to-orange-400',
-  facebook: 'from-blue-600 to-blue-400',
-  local: 'from-emerald-500 to-teal-400',
-  firebase: 'from-yellow-500 to-amber-400',
-};
-
-const PROVIDER_LABELS = {
-  google: 'Google',
-  facebook: 'Facebook',
-  local: 'Email & Password',
-  firebase: 'Firebase',
-};
+import { useCart } from '../context/CartContext';
+import { useToast } from '../context/ToastContext';
+import { 
+  FiUser, 
+  FiPackage, 
+  FiHeart, 
+  FiMapPin, 
+  FiSettings, 
+  FiLogOut, 
+  FiEdit, 
+  FiPlus, 
+  FiTrash2, 
+  FiShoppingBag,
+  FiChevronRight
+} from 'react-icons/fi';
+import { OrderCardSkeleton } from '../components/Skeleton';
 
 export default function Dashboard() {
-  const { user, logout } = useAuth();
+  const { user, logout, apiBase } = useAuth();
+  const { addToCart } = useCart();
+  const { showToast } = useToast();
   const navigate = useNavigate();
 
-  const handleLogout = async () => {
-    await logout();
-    navigate('/login');
+  const [activeTab, setActiveTab] = useState('orders');
+
+  // Dashboard Data States
+  const [orders, setOrders] = useState([]);
+  const [loadingOrders, setLoadingOrders] = useState(false);
+  const [wishlist, setWishlist] = useState([
+    { id: 1, name: "Fresh Organic Bananas", category: "Fruits", price: 80, originalPrice: 100, image: "https://res.cloudinary.com/drscamscp/image/upload/q_auto,f_auto/FreshCart_Products/bananas.png" },
+    { id: 4, name: "Amul Pure Milk (1L)", category: "Dairy & Eggs", price: 66, originalPrice: 66, image: "https://res.cloudinary.com/drscamscp/image/upload/q_auto,f_auto/FreshCart_Products/milk.png" }
+  ]);
+  const [addresses, setAddresses] = useState([
+    { id: 1, type: 'Home', name: 'Shubham Verma', phone: '9876543210', flat: 'Flat 401, Green Meadows', pin: '400001' }
+  ]);
+
+  // Edit Profile States
+  const [name, setName] = useState(user?.name || '');
+  const [phone, setPhone] = useState(user?.phone || '');
+
+  const handleLogout = () => {
+    logout();
+    showToast("Logged out successfully.", "info");
+    navigate('/');
   };
 
-  const providerGradient = PROVIDER_COLORS[user?.provider] || PROVIDER_COLORS.local;
-  const providerLabel = PROVIDER_LABELS[user?.provider] || 'Unknown';
+  // Fetch Orders
+  useEffect(() => {
+    const fetchOrders = async () => {
+      setLoadingOrders(true);
+      try {
+        const res = await fetch(`${apiBase}/api/orders`);
+        if (res.ok) {
+          const data = await res.json();
+          // Filter orders relating to current user
+          const userEmail = user?.email;
+          const userOrders = data.filter(order => order.email === userEmail);
+          setOrders(userOrders);
+        }
+      } catch (err) {
+        console.error("Failed to fetch user orders:", err);
+      } finally {
+        setLoadingOrders(false);
+      }
+    };
+    if (user?.email) {
+      fetchOrders();
+    }
+  }, [user, apiBase]);
 
-  const initials = user?.name
-    ? user.name
-        .split(' ')
-        .map((n) => n[0])
-        .join('')
-        .toUpperCase()
-        .slice(0, 2)
-    : '?';
+  const handleUpdateProfile = (e) => {
+    e.preventDefault();
+    showToast("Profile updated successfully!", "success");
+  };
 
-  const lastLogin = user?.lastLogin
-    ? new Date(user.lastLogin).toLocaleString()
-    : 'Just now';
+  const handleRemoveWishlist = (id) => {
+    setWishlist(prev => prev.filter(item => item.id !== id));
+    showToast("Item removed from wishlist.", "info");
+  };
+
+  const handleAddWishlistToCart = (item) => {
+    addToCart(item);
+    showToast(`${item.name} added to cart!`, "success");
+  };
+
+  const handleAddAddress = () => {
+    const newAddr = {
+      id: Date.now(),
+      type: 'Work',
+      name: name || 'Shubham Verma',
+      phone: phone || '9876543210',
+      flat: 'Building 12, Tech Park',
+      pin: '400099'
+    };
+    setAddresses([...addresses, newAddr]);
+    showToast("New address added!", "success");
+  };
+
+  const handleRemoveAddress = (id) => {
+    setAddresses(prev => prev.filter(addr => addr.id !== id));
+    showToast("Address deleted.", "info");
+  };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-emerald-950 via-gray-900 to-gray-950 flex flex-col">
-      {/* Top bar */}
-      <header className="w-full px-6 py-4 flex items-center justify-between border-b border-white/10 backdrop-blur-md bg-black/20">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center">
-            <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-1.5 6M7 13l-1.5 6M17 19a1 1 0 100 2 1 1 0 000-2zM9 19a1 1 0 100 2 1 1 0 000-2z" />
-            </svg>
+    <main className="main-content container px-4 sm:px-6 lg:px-8 text-left">
+      {/* Breadcrumbs */}
+      <div className="flex items-center gap-2 text-xs font-semibold text-slate-450 dark:text-slate-500 mb-8">
+        <Link to="/" className="hover:text-primary transition-colors">Home</Link>
+        <FiChevronRight className="w-3 h-3" />
+        <span className="text-slate-600 dark:text-slate-350">My Account</span>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+        
+        {/* Left Sidebar Menu */}
+        <aside className="lg:col-span-1 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-6 rounded-3xl shadow-sm h-fit">
+          <div className="flex flex-col items-center text-center pb-6 border-b border-slate-100 dark:border-slate-800/80 mb-6">
+            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-400 text-white font-display font-extrabold text-2xl flex items-center justify-center shadow-lg shadow-emerald-500/10 mb-3">
+              {user?.name ? user.name.slice(0, 2).toUpperCase() : 'U'}
+            </div>
+            <h3 className="font-display font-extrabold text-lg text-slate-850 dark:text-white leading-tight">
+              {user?.name || 'User'}
+            </h3>
+            <span className="text-xs font-semibold text-slate-400 mt-1">{user?.email}</span>
+            {user?.provider && (
+              <span className="mt-2.5 text-[10px] uppercase tracking-wider font-extrabold text-primary bg-primary/10 dark:bg-primary/20 px-2.5 py-1 rounded-full">
+                Logged in via {user.provider}
+              </span>
+            )}
           </div>
-          <span className="text-white font-bold text-lg tracking-tight">FreshCart</span>
-        </div>
 
-        <button
-          onClick={handleLogout}
-          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/10 hover:bg-red-500/20 border border-white/10 hover:border-red-400/40 text-white/70 hover:text-red-300 transition-all duration-200 text-sm font-medium"
-        >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-          </svg>
-          Logout
-        </button>
-      </header>
+          <nav className="space-y-1">
+            {[
+              { id: 'orders', label: 'My Orders', icon: FiPackage },
+              { id: 'wishlist', label: 'Wishlist', icon: FiHeart },
+              { id: 'addresses', label: 'Saved Addresses', icon: FiMapPin },
+              { id: 'profile', label: 'Profile Details', icon: FiUser },
+              { id: 'settings', label: 'Account Settings', icon: FiSettings }
+            ].map((tab) => {
+              const Icon = tab.icon;
+              const isActive = activeTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl text-sm font-semibold transition-all cursor-pointer ${
+                    isActive 
+                      ? 'bg-primary/10 text-primary dark:bg-primary/20' 
+                      : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50'
+                  }`}
+                >
+                  <Icon className={`w-4.5 h-4.5 ${isActive ? 'text-primary' : 'text-slate-400'}`} />
+                  {tab.label}
+                </button>
+              );
+            })}
+            <button
+              onClick={handleLogout}
+              className="w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl text-sm font-semibold text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 transition-all cursor-pointer mt-4"
+            >
+              <FiLogOut className="w-4.5 h-4.5" />
+              Logout
+            </button>
+          </nav>
+        </aside>
 
-      {/* Main content */}
-      <main className="flex-1 flex items-center justify-center px-4 py-12">
-        <div className="w-full max-w-2xl space-y-6">
-
-          {/* Welcome hero card */}
-          <div className="relative rounded-3xl overflow-hidden border border-white/10 bg-white/5 backdrop-blur-xl shadow-2xl">
-            {/* Gradient accent bar */}
-            <div className={`h-1.5 w-full bg-gradient-to-r ${providerGradient}`} />
-
-            <div className="p-8 flex flex-col sm:flex-row items-center gap-6">
-              {/* Avatar */}
-              <div className="relative flex-shrink-0">
-                {user?.profilePicture ? (
-                  <img
-                    src={user.profilePicture}
-                    alt={user.name}
-                    className="w-24 h-24 rounded-2xl object-cover ring-4 ring-white/10 shadow-xl"
-                  />
+        {/* Right Dashboard Area */}
+        <section className="lg:col-span-3">
+          <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-6 sm:p-8 rounded-[32px] shadow-sm min-h-[480px]">
+            
+            {/* Tab: Orders */}
+            {activeTab === 'orders' && (
+              <div className="space-y-6">
+                <h2 className="font-display font-extrabold text-xl text-slate-850 dark:text-white">Order History</h2>
+                
+                {loadingOrders ? (
+                  <div className="space-y-4">
+                    <OrderCardSkeleton />
+                    <OrderCardSkeleton />
+                  </div>
+                ) : orders.length === 0 ? (
+                  <div className="text-center py-16">
+                    <span className="text-5xl">📦</span>
+                    <h3 className="font-display font-bold text-lg text-slate-850 dark:text-slate-150 mt-4">No orders placed yet</h3>
+                    <p className="text-slate-500 dark:text-slate-400 text-sm mt-1 max-w-xs mx-auto">
+                      Explore our fresh collections and make your first purchase!
+                    </p>
+                    <button onClick={() => navigate('/products')} className="mt-6 bg-primary hover:bg-primary-hover text-white text-sm font-bold px-6 py-3 rounded-full">
+                      Start Shopping
+                    </button>
+                  </div>
                 ) : (
-                  <div className={`w-24 h-24 rounded-2xl bg-gradient-to-br ${providerGradient} flex items-center justify-center text-white text-3xl font-bold shadow-xl`}>
-                    {initials}
+                  <div className="space-y-4">
+                    {orders.map((order) => (
+                      <div key={order._id || order.orderId} className="border border-slate-150 dark:border-slate-800 rounded-3xl p-5 hover:border-slate-200 dark:hover:border-slate-700 transition-colors">
+                        <div className="flex flex-wrap justify-between items-center gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
+                          <div>
+                            <span className="text-xs font-semibold text-slate-400 block">Order ID</span>
+                            <strong className="text-sm font-extrabold text-slate-800 dark:text-slate-200">#{order.orderId}</strong>
+                          </div>
+                          <div className="text-right">
+                            <span className="text-xs font-semibold text-slate-400 block">Date</span>
+                            <span className="text-xs font-bold text-slate-600 dark:text-slate-350">
+                              {new Date(order.createdAt).toLocaleDateString()}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Items listed */}
+                        <div className="py-4 space-y-3.5">
+                          {order.items.map((item, i) => (
+                            <div key={i} className="flex justify-between items-center text-xs font-semibold text-slate-500 dark:text-slate-450">
+                              <span className="text-slate-800 dark:text-slate-200 font-bold">{item.name} <span className="text-slate-400 font-medium">x {item.quantity}</span></span>
+                              <span>₹{item.price * item.quantity}</span>
+                            </div>
+                          ))}
+                        </div>
+
+                        <div className="flex justify-between items-center pt-3 border-t border-slate-100 dark:border-slate-800 text-sm font-semibold">
+                          <div className="flex items-center gap-2">
+                            <span className="w-2.5 h-2.5 bg-emerald-500 rounded-full animate-ping"></span>
+                            <span className="text-xs text-emerald-600 dark:text-emerald-450 font-bold capitalize">{order.status || 'Delivered'}</span>
+                          </div>
+                          <div>
+                            <span className="text-xs text-slate-400 font-bold mr-1">Paid:</span>
+                            <strong className="font-display font-extrabold text-base text-slate-800 dark:text-slate-100">₹{order.totalPrice}</strong>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 )}
-                <div className={`absolute -bottom-2 -right-2 w-7 h-7 rounded-lg bg-gradient-to-br ${providerGradient} flex items-center justify-center shadow-lg`}>
-                  <svg className="w-3.5 h-3.5 text-white" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
+              </div>
+            )}
+
+            {/* Tab: Wishlist */}
+            {activeTab === 'wishlist' && (
+              <div className="space-y-6">
+                <h2 className="font-display font-extrabold text-xl text-slate-850 dark:text-white">My Wishlist</h2>
+                {wishlist.length === 0 ? (
+                  <div className="text-center py-16">
+                    <span className="text-5xl">❤️</span>
+                    <h3 className="font-display font-bold text-lg text-slate-850 dark:text-slate-150 mt-4">Wishlist is empty</h3>
+                    <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">Like some items to save them here for later purchase.</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {wishlist.map((item) => (
+                      <div key={item.id} className="flex gap-4 p-4 border border-slate-150 dark:border-slate-800 rounded-2xl items-center">
+                        <img src={item.image} alt="" className="w-14 h-14 object-contain rounded-xl" />
+                        <div className="flex-1 min-w-0">
+                          <h4 className="font-bold text-sm text-slate-800 dark:text-slate-200 truncate">{item.name}</h4>
+                          <span className="text-xs text-primary font-bold">₹{item.price}</span>
+                        </div>
+                        <div className="flex gap-2">
+                          <button 
+                            onClick={() => handleAddWishlistToCart(item)}
+                            className="bg-primary hover:bg-primary-hover text-white p-2 rounded-xl cursor-pointer"
+                          >
+                            <FiShoppingBag className="w-4 h-4" />
+                          </button>
+                          <button 
+                            onClick={() => handleRemoveWishlist(item.id)}
+                            className="text-red-400 hover:text-red-650 hover:bg-red-50 dark:hover:bg-red-950/20 p-2 rounded-xl cursor-pointer"
+                          >
+                            <FiTrash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Tab: Saved Addresses */}
+            {activeTab === 'addresses' && (
+              <div className="space-y-6">
+                <div className="flex justify-between items-center">
+                  <h2 className="font-display font-extrabold text-xl text-slate-850 dark:text-white">Saved Addresses</h2>
+                  <button 
+                    onClick={handleAddAddress}
+                    className="flex items-center gap-1.5 bg-primary hover:bg-primary-hover text-white text-xs font-bold px-4 py-2.5 rounded-xl transition-all cursor-pointer"
+                  >
+                    <FiPlus className="w-4 h-4" /> Add Address
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {addresses.map((addr) => (
+                    <div key={addr.id} className="p-5 border border-slate-150 dark:border-slate-800 rounded-2xl flex flex-col gap-3 relative hover:border-slate-200 dark:hover:border-slate-700 transition-colors">
+                      <div className="flex justify-between items-center">
+                        <span className="text-xs font-extrabold bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 px-2.5 py-1 rounded-md text-slate-500 uppercase tracking-wider">
+                          {addr.type}
+                        </span>
+                        <button 
+                          onClick={() => handleRemoveAddress(addr.id)}
+                          className="text-red-400 hover:text-red-650 p-1 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/20 transition-all cursor-pointer"
+                        >
+                          <FiTrash2 className="w-4.5 h-4.5" />
+                        </button>
+                      </div>
+                      <div className="space-y-1 text-xs font-semibold text-slate-500">
+                        <strong className="text-sm font-bold text-slate-800 dark:text-slate-200 block mb-1">{addr.name}</strong>
+                        <p className="text-slate-450">{addr.flat}</p>
+                        <p>Pin: {addr.pin}</p>
+                        <p>Ph: {addr.phone}</p>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
+            )}
 
-              {/* Info */}
-              <div className="flex-1 text-center sm:text-left">
-                <p className="text-emerald-400 text-xs font-semibold tracking-widest uppercase mb-1">
-                  Welcome back 👋
-                </p>
-                <h1 className="text-white text-3xl font-bold mb-1">{user?.name || 'User'}</h1>
-                <p className="text-gray-400 text-sm">{user?.email}</p>
+            {/* Tab: Profile Settings */}
+            {activeTab === 'profile' && (
+              <div className="space-y-6">
+                <h2 className="font-display font-extrabold text-xl text-slate-850 dark:text-white">Profile Details</h2>
+                <form className="max-w-md space-y-4" onSubmit={handleUpdateProfile}>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-500 mb-1.5 ml-1">Full Name</label>
+                    <input 
+                      type="text" 
+                      value={name} 
+                      onChange={(e) => setName(e.target.value)} 
+                      required
+                      className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-250 dark:border-slate-750 px-4 py-3 rounded-2xl text-sm font-semibold focus:outline-none focus:border-primary text-slate-850 dark:text-slate-200"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-500 mb-1.5 ml-1">Email Address (Read-Only)</label>
+                    <input 
+                      type="email" 
+                      value={user?.email || ''} 
+                      disabled
+                      className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-4 py-3 rounded-2xl text-sm font-semibold text-slate-400 dark:text-slate-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-500 mb-1.5 ml-1">Phone Number</label>
+                    <input 
+                      type="tel" 
+                      value={phone} 
+                      onChange={(e) => setPhone(e.target.value)} 
+                      placeholder="+91 9876543210"
+                      className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-250 dark:border-slate-750 px-4 py-3 rounded-2xl text-sm font-semibold focus:outline-none focus:border-primary text-slate-850 dark:text-slate-200"
+                    />
+                  </div>
 
-                <div className="mt-3 flex flex-wrap gap-2 justify-center sm:justify-start">
-                  <span className={`px-3 py-1 rounded-full bg-gradient-to-r ${providerGradient} text-white text-xs font-semibold`}>
-                    via {providerLabel}
-                  </span>
-                  {user?.isVerified && (
-                    <span className="px-3 py-1 rounded-full bg-emerald-500/20 border border-emerald-400/30 text-emerald-300 text-xs font-semibold">
-                      ✓ Verified
-                    </span>
-                  )}
+                  <button 
+                    type="submit"
+                    className="bg-primary hover:bg-primary-hover text-white py-3.5 px-8 rounded-2xl font-bold text-sm transition-all shadow-md shadow-emerald-500/10 cursor-pointer"
+                  >
+                    Save Changes
+                  </button>
+                </form>
+              </div>
+            )}
+
+            {/* Tab: Settings */}
+            {activeTab === 'settings' && (
+              <div className="space-y-6">
+                <h2 className="font-display font-extrabold text-xl text-slate-850 dark:text-white">Account Settings</h2>
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center p-4 border border-slate-150 dark:border-slate-800 rounded-2xl">
+                    <div className="text-left flex flex-col gap-0.5">
+                      <span className="text-sm font-bold text-slate-800 dark:text-slate-200">Email Notifications</span>
+                      <span className="text-xs text-slate-400">Receive order receipts and coupon promotions</span>
+                    </div>
+                    <input type="checkbox" defaultChecked className="accent-primary w-4.5 h-4.5 cursor-pointer" />
+                  </div>
+                  <div className="flex justify-between items-center p-4 border border-slate-150 dark:border-slate-800 rounded-2xl">
+                    <div className="text-left flex flex-col gap-0.5">
+                      <span className="text-sm font-bold text-slate-800 dark:text-slate-200">SMS Alerts</span>
+                      <span className="text-xs text-slate-400">Get tracking updates on mobile phone</span>
+                    </div>
+                    <input type="checkbox" defaultChecked className="accent-primary w-4.5 h-4.5 cursor-pointer" />
+                  </div>
                 </div>
               </div>
-            </div>
-          </div>
+            )}
 
-          {/* Stats grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            {[
-              {
-                label: 'Last Login',
-                value: lastLogin,
-                icon: (
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                ),
-                gradient: 'from-blue-500 to-indigo-500'
-              },
-              {
-                label: 'Auth Provider',
-                value: providerLabel,
-                icon: (
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                  </svg>
-                ),
-                gradient: 'from-purple-500 to-pink-500'
-              },
-              {
-                label: 'Account Status',
-                value: user?.isVerified ? 'Verified' : 'Pending',
-                icon: (
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                ),
-                gradient: 'from-emerald-500 to-teal-400'
-              }
-            ].map((stat) => (
-              <div
-                key={stat.label}
-                className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-xl p-5 flex flex-col gap-3 hover:bg-white/8 transition-all duration-200"
-              >
-                <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${stat.gradient} flex items-center justify-center text-white`}>
-                  {stat.icon}
-                </div>
-                <div>
-                  <p className="text-gray-500 text-xs font-medium uppercase tracking-widest">{stat.label}</p>
-                  <p className="text-white font-semibold text-sm mt-0.5 truncate">{stat.value}</p>
-                </div>
-              </div>
-            ))}
           </div>
+        </section>
 
-          {/* Quick actions */}
-          <div className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-xl p-6">
-            <h2 className="text-white font-semibold text-base mb-4">Quick Actions</h2>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              {[
-                { label: 'Shop Now', icon: '🛒', onClick: () => navigate('/') },
-                { label: 'My Cart', icon: '🛍️', onClick: () => navigate('/cart') },
-                { label: 'Track Order', icon: '📦', onClick: () => navigate('/delivery') },
-                { label: 'Admin Panel', icon: '⚙️', onClick: () => navigate('/admin') },
-              ].map((action) => (
-                <button
-                  key={action.label}
-                  onClick={action.onClick}
-                  className="flex flex-col items-center gap-2 p-4 rounded-xl bg-white/5 hover:bg-emerald-500/10 border border-white/10 hover:border-emerald-400/30 transition-all duration-200 group"
-                >
-                  <span className="text-2xl group-hover:scale-110 transition-transform">{action.icon}</span>
-                  <span className="text-gray-400 group-hover:text-emerald-300 text-xs font-medium transition-colors">{action.label}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-
-        </div>
-      </main>
-    </div>
+      </div>
+    </main>
   );
 }

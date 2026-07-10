@@ -1,12 +1,37 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
+import { useTheme } from '../context/ThemeContext';
+import { 
+  FiGrid, 
+  FiPackage, 
+  FiShoppingBag, 
+  FiUsers, 
+  FiTruck, 
+  FiTrendingUp, 
+  FiAlertCircle, 
+  FiDollarSign, 
+  FiPlus, 
+  FiTrash2, 
+  FiSearch, 
+  FiX, 
+  FiMenu, 
+  FiSun, 
+  FiMoon,
+  FiHome
+} from 'react-icons/fi';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export default function AdminDashboard() {
   const { apiBase } = useAuth();
   const navigate = useNavigate();
+  const { showToast } = useToast();
+  const { theme, toggleTheme } = useTheme();
 
+  // Sidebar controls
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   
   // Data States
   const [products, setProducts] = useState([]);
@@ -25,10 +50,6 @@ export default function AdminDashboard() {
   const [newProductOriginalPrice, setNewProductOriginalPrice] = useState('');
   const [newProductBadge, setNewProductBadge] = useState('');
   const [newProductImage, setNewProductImage] = useState(null);
-
-  // Alert Messages
-  const [pageAlert, setPageAlert] = useState(null); // { message, type }
-  const [modalAlert, setModalAlert] = useState(null);
   const [submitting, setSubmitting] = useState(false);
 
   // Fetch Products
@@ -64,18 +85,19 @@ export default function AdminDashboard() {
   }, [apiBase]);
 
   useEffect(() => {
-    fetchProducts();
-    fetchOrders();
+    Promise.resolve().then(() => {
+      fetchProducts();
+      fetchOrders();
+    });
   }, [fetchProducts, fetchOrders]);
 
   // Handle Add Product Submit
   const handleAddProductSubmit = async (e) => {
     e.preventDefault();
-    setModalAlert(null);
     setSubmitting(true);
 
     if (!newProductName.trim() || !newProductPrice || !newProductCategory) {
-      setModalAlert({ message: "Product Name, Category, and Price are required.", type: "error" });
+      showToast("Product Name, Category, and Price are required.", "error");
       setSubmitting(false);
       return;
     }
@@ -104,7 +126,7 @@ export default function AdminDashboard() {
       const data = await res.json();
 
       if (res.ok) {
-        setPageAlert({ message: `Successfully added product: "${newProductName}"!`, type: "success" });
+        showToast(`Successfully added product: "${newProductName}"!`, "success");
         setIsAddModalOpen(false);
         
         // Reset form
@@ -118,11 +140,11 @@ export default function AdminDashboard() {
         // Reload products list
         fetchProducts();
       } else {
-        setModalAlert({ message: data.message || "Failed to add product. Make sure credentials and file are correct.", type: "error" });
+        showToast(data.message || "Failed to add product.", "error");
       }
     } catch (err) {
       console.error(err);
-      setModalAlert({ message: "Network connection error while uploading product.", type: "error" });
+      showToast("Network error uploading product.", "error");
     } finally {
       setSubmitting(false);
     }
@@ -139,15 +161,14 @@ export default function AdminDashboard() {
       const data = await res.json();
 
       if (res.ok) {
-        setPageAlert({ message: "Product deleted successfully!", type: "success" });
-        // Update local state directly or reload
+        showToast("Product deleted successfully!", "success");
         setProducts(prev => prev.filter(p => (p.id || p._id) !== id));
       } else {
-        setPageAlert({ message: data.message || "Failed to delete product.", type: "error" });
+        showToast(data.message || "Failed to delete product.", "error");
       }
     } catch (err) {
       console.error(err);
-      setPageAlert({ message: "Connection error deleting product.", type: "error" });
+      showToast("Connection error deleting product.", "error");
     }
   };
 
@@ -161,33 +182,23 @@ export default function AdminDashboard() {
       });
 
       if (res.ok) {
-        setPageAlert({ message: `Order #${orderId} status updated to ${newStatus}`, type: "success" });
-        // Update local state without refetching
+        showToast(`Order status updated to ${newStatus}`, "success");
         setOrders(prev => prev.map(o => o.orderId === orderId ? { ...o, status: newStatus } : o));
       } else {
-        setPageAlert({ message: "Failed to update status", type: "error" });
+        showToast("Failed to update status", "error");
       }
     } catch (err) {
       console.error(err);
-      setPageAlert({ message: "Network error updating status", type: "error" });
+      showToast("Network error updating status", "error");
     }
   };
 
-  // Auto-dismiss page alert
-  useEffect(() => {
-    if (pageAlert) {
-      const timer = setTimeout(() => setPageAlert(null), 4000);
-      return () => clearTimeout(timer);
-    }
-  }, [pageAlert]);
-
-  // Derived metrics from real data
+  // Derived Metrics
   const totalSales = orders.reduce((sum, order) => sum + (order.totalPrice || 0), 0);
   const activeOrdersCount = orders.filter(o => o.status === 'Processing' || o.status === 'Out for Delivery' || !o.status).length;
-  // Out of stock calculation: products with price less than 20 or count static items that are out of stock (mocked as 8)
   const outOfStockCount = products.filter(p => p.price <= 0).length;
 
-  // Filter lists based on search bar
+  // Filter lists based on search
   const filteredProducts = products.filter(p => 
     p.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
     p.category.toLowerCase().includes(searchQuery.toLowerCase())
@@ -198,827 +209,507 @@ export default function AdminDashboard() {
     (o.email && o.email.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
+  // Mock platform users derived from orders & default list
+  const mockUsers = [
+    { id: 1, name: 'Aarav Sharma', email: 'aarav@gmail.com', orders: 12, spent: 4850, verified: true },
+    { id: 2, name: 'Priya Patel', email: 'priya@gmail.com', orders: 8, spent: 3120, verified: true },
+    { id: 3, name: 'Shubham Verma', email: 'shubhamverma8299@gmail.com', orders: 4, spent: 1850, verified: true }
+  ];
+
   return (
-    <div className="admin-layout">
-      {/* Page-specific CSS */}
-      <style dangerouslySetInnerHTML={{ __html: `
-        .admin-layout {
-            display: flex;
-            min-height: 100vh;
-            background-color: #F1F5F9;
-            width: 100%;
-        }
-
-        .sidebar {
-            width: 260px;
-            background: #0F172A;
-            color: white;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            position: fixed;
-            height: 100vh;
-            left: 0;
-            top: 0;
-            z-index: 10;
-        }
-
-        .sidebar-logo {
-            font-family: 'Outfit';
-            font-size: 24px;
-            font-weight: 800;
-            color: var(--primary-color);
-            margin-bottom: 40px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            text-align: left;
-        }
-
-        .nav-item {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding: 12px 16px;
-            border-radius: 8px;
-            color: #94A3B8;
-            margin-bottom: 5px;
-            transition: all 0.2s;
-            cursor: pointer;
-            font-weight: 500;
-            text-align: left;
-        }
-
-        .nav-item:hover, .nav-item.active {
-            background: #1E293B;
-            color: white;
-        }
-
-        .nav-item.active {
-            border-left: 4px solid var(--primary-color);
-        }
-
-        .main-panel {
-            flex: 1;
-            margin-left: 260px;
-            padding: 30px 40px;
-        }
-
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 30px;
-            text-align: left;
-        }
-
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-            gap: 20px;
-            margin-bottom: 30px;
-        }
-
-        .stat-card {
-            background: white;
-            padding: 20px;
-            border-radius: 12px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-            text-align: left;
-            border: 1px solid rgba(148, 163, 184, 0.1);
-        }
-
-        .stat-title {
-            color: var(--text-secondary);
-            font-size: 14px;
-            font-weight: 500;
-            margin-bottom: 8px;
-        }
-
-        .stat-value {
-            font-size: 28px;
-            font-weight: 700;
-            font-family: 'Outfit';
-            color: var(--text-primary);
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .stat-trend {
-            font-size: 12px;
-            color: var(--primary-color);
-            background: rgba(16, 185, 129, 0.1);
-            padding: 4px 8px;
-            border-radius: 12px;
-        }
-
-        .data-table-card {
-            background: white;
-            border-radius: 12px;
-            padding: 20px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-            border: 1px solid rgba(148, 163, 184, 0.1);
-        }
-
-        .table-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-
-        th {
-            text-align: left;
-            padding: 12px 15px;
-            border-bottom: 1px solid var(--border-color);
-            color: var(--text-secondary);
-            font-weight: 500;
-            font-size: 14px;
-        }
-
-        td {
-            padding: 15px;
-            border-bottom: 1px solid #F1F5F9;
-            font-size: 14px;
-            text-align: left;
-            vertical-align: middle;
-        }
-
-        .badge-status {
-            padding: 6px 12px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: 600;
-        }
-
-        .status-pending { background: #FEF3C7; color: #D97706; }
-        .status-ready { background: #E0E7FF; color: #4338CA; }
-        .status-delivered { background: #D1FAE5; color: #059669; }
-
-        /* Modal Overlay */
-        .modal-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            background: rgba(15, 23, 42, 0.5);
-            backdrop-filter: blur(8px);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 1000;
-            animation: fadeIn 0.3s ease-out;
-        }
-
-        .modal-card {
-            background: white;
-            border-radius: 24px;
-            padding: 35px;
-            width: 100%;
-            max-width: 500px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.12);
-            border: 1px solid rgba(255,255,255,0.4);
-            animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-        }
-
-        @keyframes slideUp {
-            from { transform: translateY(30px); opacity: 0; }
-            to { transform: translateY(0); opacity: 1; }
-        }
-
-        /* Form styling */
-        .admin-form-group {
-            margin-bottom: 18px;
-            text-align: left;
-        }
-
-        .admin-form-label {
-            display: block;
-            font-size: 14px;
-            font-weight: 600;
-            margin-bottom: 8px;
-            color: #1E293B;
-        }
-
-        .admin-form-input {
-            width: 100%;
-            padding: 12px 14px;
-            border: 1px solid var(--border-color);
-            border-radius: 10px;
-            font-family: 'Inter';
-            font-size: 15px;
-            box-sizing: border-box;
-            background: #F8FAFC;
-        }
-
-        .admin-form-input:focus {
-            outline: none;
-            border-color: var(--primary-color);
-            background: white;
-        }
-
-        /* Hide Storefront header when in admin view */
-        nav.navbar {
-            display: none !important;
-        }
-      `}} />
-
-      {/* Sidebar Panel */}
-      <aside className="sidebar">
-        <div className="sidebar-logo">
-          <ion-icon name="basket"></ion-icon> Admin
-        </div>
+    <div className="flex min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-200 transition-colors duration-300">
+      
+      {/* 1. Collapsible Admin Sidebar */}
+      <aside className={`fixed inset-y-0 left-0 z-40 w-64 bg-slate-900 text-slate-300 p-6 flex flex-col transform transition-transform duration-300 lg:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         
-        <div 
-          className={`nav-item ${activeTab === 'dashboard' ? 'active' : ''}`}
-          onClick={() => setActiveTab('dashboard')}
-        >
-          <ion-icon name="grid-outline"></ion-icon> Dashboard
+        {/* Sidebar Logo */}
+        <div className="flex justify-between items-center mb-10">
+          <Link to="/" className="flex items-center gap-2.5">
+            <div className="w-9 h-9 rounded-lg bg-primary flex items-center justify-center text-white">
+              <FiShoppingBag className="w-5 h-5" />
+            </div>
+            <span className="font-display font-extrabold text-xl tracking-tight text-emerald-500">
+              FreshCart
+            </span>
+          </Link>
+          <button onClick={() => setSidebarOpen(false)} className="lg:hidden text-slate-400 hover:text-white">
+            <FiX className="w-6 h-6" />
+          </button>
         </div>
-        <div 
-          className={`nav-item ${activeTab === 'products' ? 'active' : ''}`}
-          onClick={() => setActiveTab('products')}
-        >
-          <ion-icon name="cube-outline"></ion-icon> Products
+
+        {/* Sidebar Menu Links */}
+        <nav className="flex-1 space-y-1.5 text-left">
+          {[
+            { id: 'dashboard', label: 'Overview', icon: FiGrid },
+            { id: 'products', label: 'Products Catalog', icon: FiPackage },
+            { id: 'orders', label: 'Order Requests', icon: FiShoppingBag },
+            { id: 'customers', label: 'User Directory', icon: FiUsers },
+            { id: 'delivery', label: 'Delivery Maps', icon: FiTruck }
+          ].map((tab) => {
+            const Icon = tab.icon;
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => { setActiveTab(tab.id); setSidebarOpen(false); }}
+                className={`w-full flex items-center gap-3.5 px-4.5 py-3.5 rounded-2xl text-sm font-semibold transition-all cursor-pointer ${
+                  isActive 
+                    ? 'bg-primary text-white shadow-lg shadow-emerald-500/10' 
+                    : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+                }`}
+              >
+                <Icon className="w-4.5 h-4.5" />
+                {tab.label}
+              </button>
+            );
+          })}
+        </nav>
+
+        {/* Sidebar Footer */}
+        <div className="border-t border-slate-800 pt-6 space-y-3.5">
+          <button 
+            onClick={toggleTheme}
+            className="w-full flex items-center justify-between text-slate-450 hover:text-white text-xs font-semibold cursor-pointer"
+          >
+            <span>Appearance Mode</span>
+            {theme === 'dark' ? <FiSun className="w-4.5 h-4.5 text-amber-500" /> : <FiMoon className="w-4.5 h-4.5 text-slate-400" />}
+          </button>
+          <Link to="/" className="flex items-center gap-2 text-xs font-bold text-slate-450 hover:text-white transition-colors">
+            <FiHome className="w-4 h-4" /> Back to Storefront
+          </Link>
         </div>
-        <div 
-          className={`nav-item ${activeTab === 'orders' ? 'active' : ''}`}
-          onClick={() => setActiveTab('orders')}
-        >
-          <ion-icon name="receipt-outline"></ion-icon> Orders
-        </div>
-        <div 
-          className={`nav-item ${activeTab === 'customers' ? 'active' : ''}`}
-          onClick={() => setActiveTab('customers')}
-        >
-          <ion-icon name="people-outline"></ion-icon> Customers
-        </div>
-        <div 
-          className={`nav-item ${activeTab === 'delivery' ? 'active' : ''}`}
-          onClick={() => setActiveTab('delivery')}
-        >
-          <ion-icon name="bicycle-outline"></ion-icon> Delivery Team
-        </div>
-        
-        <div style={{ flex: 1 }}></div>
-        
-        <div className="nav-item" style={{ color: '#F87171' }} onClick={() => navigate('/')}>
-          <ion-icon name="log-out-outline"></ion-icon> Logout
-        </div>
+
       </aside>
 
-      {/* Main Panel Content */}
-      <main className="main-panel fade-in">
+      {/* 2. Main Panel */}
+      <div className="flex-1 flex flex-col lg:pl-64 min-w-0">
         
-        {/* Floating Notification */}
-        {pageAlert && (
-          <div 
-            style={{
-              position: 'fixed',
-              top: '20px',
-              right: '20px',
-              padding: '16px 24px',
-              borderRadius: '12px',
-              boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
-              zIndex: 999,
-              fontWeight: '600',
-              border: `1px solid ${pageAlert.type === 'success' ? '#10b981' : '#ef4444'}`,
-              background: pageAlert.type === 'success' ? '#d1fae5' : '#fee2e2',
-              color: pageAlert.type === 'success' ? '#065f46' : '#991b1b',
-              animation: 'slideUp 0.3s ease-out'
-            }}
-          >
-            {pageAlert.message}
-          </div>
-        )}
-
-        <div className="header">
-          <div>
-            <h1 style={{ fontSize: '28px', margin: 0 }}>
-              {activeTab.charAt(0).toUpperCase() + activeTab.slice(1)} Overview
+        {/* Top Header */}
+        <header className="h-20 bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-850 px-6 sm:px-8 flex items-center justify-between sticky top-0 z-30">
+          <div className="flex items-center gap-3">
+            <button onClick={() => setSidebarOpen(true)} className="lg:hidden text-slate-500 hover:text-slate-700 dark:text-slate-350 focus:outline-none">
+              <FiMenu className="w-6.5 h-6.5" />
+            </button>
+            <h1 className="font-display font-black text-2xl text-slate-850 dark:text-white capitalize">
+              Admin {activeTab}
             </h1>
-            <p style={{ color: 'var(--text-secondary)', margin: '5px 0 0' }}>
-              Welcome back, Admin. Here's what's happening today.
-            </p>
           </div>
-          <div>
-            <button className="btn-primary" onClick={() => setIsAddModalOpen(true)}>
-              <ion-icon name="add-outline"></ion-icon> Add Product
-            </button>
-            <button 
-              className="btn-primary" 
-              style={{ background: 'white', color: 'black', border: '1px solid #ccc', marginLeft: '10px' }}
-              onClick={() => navigate('/')}
-            >
-              Storefront
-            </button>
-          </div>
-        </div>
 
-        {/* Global Stats bar (Always visible on main dashboard, summaries elsewhere) */}
-        <div className="stats-grid">
-          <div className="stat-card">
-            <div className="stat-title">Total Sales (Today)</div>
-            <div className="stat-value">
-              ₹{totalSales.toLocaleString()}{' '}
-              <span className="stat-trend">
-                <ion-icon name="arrow-up"></ion-icon> 12%
-              </span>
-            </div>
+          {/* Search bar inside admin */}
+          <div className="relative group w-48 sm:w-64">
+            <input 
+              type="text" 
+              placeholder="Search catalog/orders..." 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-200 pl-10 pr-4 py-2.5 rounded-2xl border border-slate-200 dark:border-slate-700 focus:outline-none focus:border-primary text-xs font-semibold"
+            />
+            <FiSearch className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
           </div>
-          <div className="stat-card">
-            <div className="stat-title">Active Orders</div>
-            <div className="stat-value">{activeOrdersCount}</div>
-          </div>
-          <div className="stat-card">
-            <div className="stat-title">Products Out of Stock</div>
-            <div className="stat-value" style={{ color: '#EF4444' }}>
-              {outOfStockCount}
-            </div>
-          </div>
-          <div className="stat-card">
-            <div className="stat-title">Delivery Boys Online</div>
-            <div className="stat-value">15/20</div>
-          </div>
-        </div>
+        </header>
 
-        {/* Tab content rendering */}
-        {activeTab === 'dashboard' && (
-          <div className="data-table-card">
-            <div className="table-header">
-              <h2 style={{ fontSize: '20px', margin: 0 }}>Recent Orders</h2>
-              <input 
-                type="text" 
-                className="search-input" 
-                placeholder="Search orders..." 
-                style={{ maxWidth: '250px', padding: '8px 15px' }}
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-            </div>
-            {loadingOrders ? (
-              <p style={{ textAlign: 'center', padding: '20px' }}>Loading orders...</p>
-            ) : filteredOrders.length === 0 ? (
-              <p style={{ textAlign: 'center', padding: '20px' }}>No orders found.</p>
-            ) : (
-              <table>
-                <thead>
-                  <tr>
-                    <th>Order ID</th>
-                    <th>Customer</th>
-                    <th>Date</th>
-                    <th>Amount</th>
-                    <th>Status</th>
-                    <th>Action</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredOrders.slice(0, 5).map((order) => {
-                    const statusClass = 
-                      order.status === 'Processing' ? 'status-pending' : 
-                      order.status === 'Out for Delivery' ? 'status-ready' : 'status-delivered';
-                    return (
-                      <tr key={order.orderId}>
-                        <td style={{ fontWeight: 600 }}>#{order.orderId}</td>
-                        <td>{order.email ? order.email.split('@')[0] : 'Guest User'}</td>
-                        <td>{order.createdAt ? new Date(order.createdAt).toLocaleDateString() : 'Today'}</td>
-                        <td>₹{order.totalPrice}</td>
-                        <td>
-                          <span className={`badge-status ${statusClass}`}>{order.status || 'Processing'}</span>
-                        </td>
-                        <td>
-                          <select 
-                            value={order.status || 'Processing'} 
-                            onChange={(e) => handleUpdateOrderStatus(order.orderId, e.target.value)}
-                            style={{ 
-                              padding: '5px', 
-                              borderRadius: '6px', 
-                              border: '1px solid #ccc',
-                              fontSize: '12px',
-                              cursor: 'pointer',
-                              outline: 'none'
-                            }}
-                          >
-                            <option value="Processing">Processing</option>
-                            <option value="Out for Delivery">Out for Delivery</option>
-                            <option value="Delivered">Delivered</option>
-                          </select>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            )}
-          </div>
-        )}
-
-        {activeTab === 'products' && (
-          <div className="data-table-card">
-            <div className="table-header">
-              <h2 style={{ fontSize: '20px', margin: 0 }}>Product Inventory</h2>
-              <input 
-                type="text" 
-                className="search-input" 
-                placeholder="Search products..." 
-                style={{ maxWidth: '250px', padding: '8px 15px' }}
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-            </div>
-            {loadingProducts ? (
-              <p style={{ textAlign: 'center', padding: '20px' }}>Loading products...</p>
-            ) : filteredProducts.length === 0 ? (
-              <p style={{ textAlign: 'center', padding: '20px' }}>No products match your search.</p>
-            ) : (
-              <table>
-                <thead>
-                  <tr>
-                    <th>Image</th>
-                    <th>Product Name</th>
-                    <th>Category</th>
-                    <th>Price</th>
-                    <th>Original Price</th>
-                    <th>Badge</th>
-                    <th>Action</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredProducts.map((p) => {
-                    const productId = p.id || p._id;
-                    return (
-                      <tr key={productId}>
-                        <td>
-                          <img 
-                            src={p.image} 
-                            alt={p.name} 
-                            style={{ width: '40px', height: '40px', objectFit: 'contain', borderRadius: '6px' }}
-                          />
-                        </td>
-                        <td style={{ fontWeight: 600 }}>{p.name}</td>
-                        <td>{p.category}</td>
-                        <td>₹{p.price}</td>
-                        <td>{p.originalPrice ? `₹${p.originalPrice}` : '-'}</td>
-                        <td>
-                          {p.badge ? (
-                            <span style={{ fontSize: '11px', background: '#ecfdf5', color: '#059669', padding: '4px 8px', borderRadius: '12px', fontWeight: 'bold' }}>
-                              {p.badge}
-                            </span>
-                          ) : '-'}
-                        </td>
-                        <td>
-                          <button 
-                            onClick={() => handleDeleteProduct(productId)}
-                            style={{ background: 'none', border: 'none', color: '#ef4444', fontWeight: 600, cursor: 'pointer' }}
-                          >
-                            Delete
-                          </button>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            )}
-          </div>
-        )}
-
-        {activeTab === 'orders' && (
-          <div className="data-table-card">
-            <div className="table-header">
-              <h2 style={{ fontSize: '20px', margin: 0 }}>All Orders</h2>
-              <input 
-                type="text" 
-                className="search-input" 
-                placeholder="Search orders..." 
-                style={{ maxWidth: '250px', padding: '8px 15px' }}
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-            </div>
-            {loadingOrders ? (
-              <p style={{ textAlign: 'center', padding: '20px' }}>Loading orders...</p>
-            ) : filteredOrders.length === 0 ? (
-              <p style={{ textAlign: 'center', padding: '20px' }}>No orders found.</p>
-            ) : (
-              <table>
-                <thead>
-                  <tr>
-                    <th>Order ID</th>
-                    <th>Customer Email</th>
-                    <th>Items Count</th>
-                    <th>Payment</th>
-                    <th>Total Price</th>
-                    <th>Status</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredOrders.map((order) => {
-                    const statusClass = 
-                      order.status === 'Processing' ? 'status-pending' : 
-                      order.status === 'Out for Delivery' ? 'status-ready' : 'status-delivered';
-                    return (
-                      <tr key={order.orderId}>
-                        <td style={{ fontWeight: 600 }}>#{order.orderId}</td>
-                        <td>{order.email || 'guest@freshcart.com'}</td>
-                        <td>{order.items ? order.items.reduce((sum, i) => sum + i.quantity, 0) : 1} items</td>
-                        <td style={{ textTransform: 'uppercase' }}>{order.paymentMethod || 'upi'}</td>
-                        <td style={{ fontWeight: '600' }}>₹{order.totalPrice}</td>
-                        <td>
-                          <span className={`badge-status ${statusClass}`}>{order.status || 'Processing'}</span>
-                        </td>
-                        <td>
-                          <select 
-                            value={order.status || 'Processing'} 
-                            onChange={(e) => handleUpdateOrderStatus(order.orderId, e.target.value)}
-                            style={{ 
-                              padding: '5px', 
-                              borderRadius: '6px', 
-                              border: '1px solid #ccc',
-                              fontSize: '12px',
-                              cursor: 'pointer',
-                              outline: 'none',
-                              marginRight: '8px'
-                            }}
-                          >
-                            <option value="Processing">Processing</option>
-                            <option value="Out for Delivery">Out for Delivery</option>
-                            <option value="Delivered">Delivered</option>
-                          </select>
-                          <button 
-                            className="btn-primary" 
-                            style={{ padding: '6px 12px', fontSize: '12px' }}
-                            onClick={() => navigate(`/delivery?orderId=${order.orderId}`)}
-                          >
-                            Track
-                          </button>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            )}
-          </div>
-        )}
-
-        {activeTab === 'customers' && (
-          <div className="data-table-card">
-            <div className="table-header">
-              <h2 style={{ fontSize: '20px', margin: 0 }}>Registered Customers</h2>
-            </div>
-            <table>
-              <thead>
-                <tr>
-                  <th>Name</th>
-                  <th>Email</th>
-                  <th>Joined Date</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td style={{ fontWeight: 600 }}>Rahul Sharma</td>
-                  <td>rahul@example.com</td>
-                  <td>June 12, 2026</td>
-                  <td><span className="badge-status status-delivered">Active</span></td>
-                </tr>
-                <tr>
-                  <td style={{ fontWeight: 600 }}>Priya Patel</td>
-                  <td>priya@example.com</td>
-                  <td>June 14, 2026</td>
-                  <td><span className="badge-status status-delivered">Active</span></td>
-                </tr>
-                <tr>
-                  <td style={{ fontWeight: 600 }}>Amit Kumar</td>
-                  <td>amit@example.com</td>
-                  <td>June 15, 2026</td>
-                  <td><span className="badge-status status-delivered">Active</span></td>
-                </tr>
-                <tr>
-                  <td style={{ fontWeight: 600 }}>Ananya Sen</td>
-                  <td>ananya@example.com</td>
-                  <td>June 17, 2026</td>
-                  <td><span className="badge-status status-delivered">Active</span></td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        )}
-
-        {activeTab === 'delivery' && (
-          <div className="data-table-card">
-            <div className="table-header">
-              <h2 style={{ fontSize: '20px', margin: 0 }}>Delivery Personnel</h2>
-            </div>
-            <table>
-              <thead>
-                <tr>
-                  <th>Name</th>
-                  <th>Rating</th>
-                  <th>Status</th>
-                  <th>Vehicle</th>
-                  <th>Active Order</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td style={{ fontWeight: 600 }}>Vidya shankar</td>
-                  <td>⭐ 4.9</td>
-                  <td><span className="badge-status status-delivered">Online</span></td>
-                  <td>Bicycle</td>
-                  <td>#ORD-9824X</td>
-                </tr>
-                <tr>
-                  <td style={{ fontWeight: 600 }}>Amit Pal</td>
-                  <td>⭐ 4.8</td>
-                  <td><span className="badge-status status-delivered">Online</span></td>
-                  <td>Motorcycle</td>
-                  <td>#ORD-9823X</td>
-                </tr>
-                <tr>
-                  <td style={{ fontWeight: 600 }}>Deepak Negi</td>
-                  <td>⭐ 4.7</td>
-                  <td><span className="badge-status status-pending">Offline</span></td>
-                  <td>Scooter</td>
-                  <td>None</td>
-                </tr>
-                <tr>
-                  <td style={{ fontWeight: 600 }}>Rajesh Kumar</td>
-                  <td>⭐ 4.9</td>
-                  <td><span className="badge-status status-delivered">Online</span></td>
-                  <td>Bicycle</td>
-                  <td>None</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        )}
-
-      </main>
-
-      {/* Add Product Modal Overlay */}
-      {isAddModalOpen && (
-        <div className="modal-overlay" onClick={() => setIsAddModalOpen(false)}>
-          <div className="modal-card" onClick={(e) => e.stopPropagation()}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-              <h2 style={{ margin: 0, fontFamily: 'Outfit', fontSize: '22px' }}>Add New Product</h2>
-              <button 
-                onClick={() => setIsAddModalOpen(false)}
-                style={{ background: 'none', border: 'none', fontSize: '24px', cursor: 'pointer', color: 'var(--text-secondary)' }}
-              >
-                &times;
-              </button>
-            </div>
-
-            <form onSubmit={handleAddProductSubmit}>
-              <div className="admin-form-group">
-                <label className="admin-form-label">Product Name</label>
-                <input 
-                  type="text" 
-                  className="admin-form-input" 
-                  placeholder="e.g. Farm Fresh Carrots"
-                  value={newProductName}
-                  onChange={(e) => setNewProductName(e.target.value)}
-                  required 
-                />
+        {/* Inner Content Area */}
+        <main className="flex-1 p-6 sm:p-8 space-y-8">
+          
+          {/* TAB: OVERVIEW / DASHBOARD */}
+          {activeTab === 'dashboard' && (
+            <div className="space-y-8">
+              {/* Stats Cards Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                {[
+                  { label: 'Total Revenue', value: `₹${totalSales}`, trend: '+12.5%', color: 'from-emerald-500/10 to-teal-500/5 text-emerald-600', icon: FiDollarSign },
+                  { label: 'Total Orders', value: orders.length, trend: '+8.4%', color: 'from-blue-500/10 to-indigo-500/5 text-blue-600', icon: FiShoppingBag },
+                  { label: 'Inventory Items', value: products.length, trend: 'Updated', color: 'from-amber-500/10 to-yellow-500/5 text-amber-600', icon: FiPackage },
+                  { label: 'Active Deliveries', value: activeOrdersCount, trend: 'Realtime', color: 'from-purple-500/10 to-pink-500/5 text-purple-600', icon: FiTruck }
+                ].map((stat, i) => {
+                  const Icon = stat.icon;
+                  return (
+                    <div key={i} className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800/80 p-6 rounded-3xl shadow-sm text-left flex items-center justify-between">
+                      <div className="space-y-2">
+                        <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">{stat.label}</span>
+                        <div className="font-display font-black text-2xl text-slate-850 dark:text-white">{stat.value}</div>
+                        <span className="inline-block text-[10px] font-extrabold bg-emerald-50 dark:bg-emerald-950/20 text-emerald-600 px-2 py-0.5 rounded-full">{stat.trend}</span>
+                      </div>
+                      <div className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${stat.color} flex items-center justify-center flex-shrink-0`}>
+                        <Icon className="w-5.5 h-5.5" />
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
 
-              <div className="admin-form-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
-                <div className="admin-form-group">
-                  <label className="admin-form-label">Category</label>
-                  <select 
-                    className="admin-form-input"
-                    value={newProductCategory}
-                    onChange={(e) => setNewProductCategory(e.target.value)}
-                  >
-                    <option value="Vegetables">Vegetables</option>
-                    <option value="Fruits">Fruits</option>
-                    <option value="Dairy & Eggs">Dairy & Eggs</option>
-                    <option value="Bakery">Bakery</option>
-                    <option value="Meat">Meat</option>
-                    <option value="Beverages">Beverages</option>
-                    <option value="Snacks">Snacks</option>
-                  </select>
-                </div>
-
-                <div className="admin-form-group">
-                  <label className="admin-form-label">Price (₹)</label>
-                  <input 
-                    type="number" 
-                    className="admin-form-input" 
-                    placeholder="e.g. 50"
-                    value={newProductPrice}
-                    onChange={(e) => setNewProductPrice(e.target.value)}
-                    required 
-                  />
-                </div>
-              </div>
-
-              <div className="admin-form-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
-                <div className="admin-form-group">
-                  <label className="admin-form-label">Original Price (₹)</label>
-                  <input 
-                    type="number" 
-                    className="admin-form-input" 
-                    placeholder="e.g. 70"
-                    value={newProductOriginalPrice}
-                    onChange={(e) => setNewProductOriginalPrice(e.target.value)}
-                  />
-                </div>
-
-                <div className="admin-form-group">
-                  <label className="admin-form-label">Badge</label>
-                  <select 
-                    className="admin-form-input"
-                    value={newProductBadge}
-                    onChange={(e) => setNewProductBadge(e.target.value)}
-                  >
-                    <option value="">None</option>
-                    <option value="Bestseller">Bestseller</option>
-                    <option value="Fresh Arrival">Fresh Arrival</option>
-                    <option value="Offer">Offer</option>
-                    <option value="High Demand">High Demand</option>
-                    <option value="New">New</option>
-                    <option value="Trending">Trending</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="admin-form-group">
-                <label className="admin-form-label">Product Image</label>
-                <input 
-                  type="file" 
-                  accept="image/*"
-                  className="admin-form-input"
-                  style={{ padding: '8px 10px', marginBottom: newProductImage ? '10px' : '0' }}
-                  onChange={(e) => setNewProductImage(e.target.files[0])}
-                />
-                {newProductImage && (
-                  <div style={{ 
-                    marginTop: '10px', 
-                    padding: '10px', 
-                    background: '#f8fafc', 
-                    borderRadius: '8px', 
-                    display: 'inline-block',
-                    border: '1px dashed #cbd5e1'
-                  }}>
-                    <p style={{ margin: '0 0 5px 0', fontSize: '12px', color: '#64748b' }}>Image Preview</p>
-                    <img 
-                      src={URL.createObjectURL(newProductImage)} 
-                      alt="Preview" 
-                      style={{ maxHeight: '100px', borderRadius: '4px', objectFit: 'contain' }}
-                    />
+              {/* Charts area */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                
+                {/* SVG Sales Line Chart */}
+                <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-6 rounded-3xl shadow-sm text-left">
+                  <h3 className="font-display font-extrabold text-base text-slate-800 dark:text-white mb-6 flex items-center gap-2">
+                    <FiTrendingUp className="text-primary w-4.5 h-4.5" /> Sales Performance
+                  </h3>
+                  
+                  {/* SVG Chart Drawing */}
+                  <div className="h-60 w-full relative">
+                    <svg viewBox="0 0 500 200" className="w-full h-full overflow-visible">
+                      <defs>
+                        <linearGradient id="chartGradient" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="#10B981" stopOpacity="0.3" />
+                          <stop offset="100%" stopColor="#10B981" stopOpacity="0.0" />
+                        </linearGradient>
+                      </defs>
+                      {/* Grid Lines */}
+                      <line x1="0" y1="50" x2="500" y2="50" stroke="#f1f5f9" strokeWidth="1" className="dark:stroke-slate-800" />
+                      <line x1="0" y1="100" x2="500" y2="100" stroke="#f1f5f9" strokeWidth="1" className="dark:stroke-slate-800" />
+                      <line x1="0" y1="150" x2="500" y2="150" stroke="#f1f5f9" strokeWidth="1" className="dark:stroke-slate-800" />
+                      
+                      {/* Line graph path */}
+                      <path 
+                        d="M 0 170 C 80 140, 120 180, 200 110 C 280 80, 320 130, 400 60 L 500 40" 
+                        fill="none" 
+                        stroke="#10B981" 
+                        strokeWidth="3.5" 
+                        strokeLinecap="round"
+                      />
+                      {/* Gradient fill */}
+                      <path 
+                        d="M 0 170 C 80 140, 120 180, 200 110 C 280 80, 320 130, 400 60 L 500 40 L 500 200 L 0 200 Z" 
+                        fill="url(#chartGradient)"
+                      />
+                    </svg>
+                    <div className="flex justify-between text-[10px] font-bold text-slate-400 mt-4 px-2">
+                      <span>Mon</span>
+                      <span>Tue</span>
+                      <span>Wed</span>
+                      <span>Thu</span>
+                      <span>Fri</span>
+                      <span>Sat</span>
+                      <span>Sun</span>
+                    </div>
                   </div>
-                )}
+                </div>
+
+                {/* Categories Bar Distribution */}
+                <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-6 rounded-3xl shadow-sm text-left">
+                  <h3 className="font-display font-extrabold text-base text-slate-800 dark:text-white mb-6 flex items-center gap-2">
+                    <FiPackage className="text-primary w-4.5 h-4.5" /> Category Share
+                  </h3>
+                  
+                  <div className="space-y-4 pt-2">
+                    {[
+                      { name: 'Vegetables & Fruits', percent: '42%', width: 'w-[42%]', color: 'bg-emerald-500' },
+                      { name: 'Dairy & Drinks', percent: '28%', width: 'w-[28%]', color: 'bg-blue-500' },
+                      { name: 'Snacks & Bakery', percent: '20%', width: 'w-[20%]', color: 'bg-amber-500' },
+                      { name: 'Others', percent: '10%', width: 'w-[10%]', color: 'bg-purple-500' }
+                    ].map((cat, i) => (
+                      <div key={i} className="space-y-1.5 text-xs font-semibold">
+                        <div className="flex justify-between text-slate-600 dark:text-slate-350">
+                          <span>{cat.name}</span>
+                          <strong className="text-slate-850 dark:text-slate-200">{cat.percent}</strong>
+                        </div>
+                        <div className="w-full bg-slate-100 dark:bg-slate-800 h-2.5 rounded-full overflow-hidden">
+                          <div className={`${cat.color} h-full ${cat.width} rounded-full`} />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+              </div>
+            </div>
+          )}
+
+          {/* TAB: PRODUCTS CATALOG */}
+          {activeTab === 'products' && (
+            <div className="space-y-6 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-6 rounded-[32px] shadow-sm">
+              <div className="flex justify-between items-center pb-4 border-b border-slate-100 dark:border-slate-850">
+                <h3 className="font-display font-extrabold text-lg text-slate-850 dark:text-white">Active Catalog ({filteredProducts.length})</h3>
+                <button 
+                  onClick={() => setIsAddModalOpen(true)}
+                  className="flex items-center gap-1.5 bg-primary hover:bg-primary-hover text-white text-sm font-bold px-5 py-3 rounded-2xl cursor-pointer"
+                >
+                  <FiPlus className="w-4 h-4" /> Add Product
+                </button>
               </div>
 
-              {modalAlert && (
-                <div 
-                  style={{
-                    padding: '12px',
-                    borderRadius: '8px',
-                    fontSize: '14px',
-                    marginBottom: '15px',
-                    border: `1px solid ${modalAlert.type === 'success' ? '#10b981' : '#ef4444'}`,
-                    background: modalAlert.type === 'success' ? '#d1fae5' : '#fee2e2',
-                    color: modalAlert.type === 'success' ? '#065f46' : '#991b1b',
-                    textAlign: 'left'
-                  }}
-                >
-                  {modalAlert.message}
+              {loadingProducts ? (
+                <div className="text-center py-10 text-slate-400">Loading catalog...</div>
+              ) : filteredProducts.length === 0 ? (
+                <div className="text-center py-12 text-slate-400">No items found matching the search.</div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="border-b border-slate-100 dark:border-slate-800/80">
+                        <th className="py-4 text-xs font-bold text-slate-400 uppercase pr-4">Image</th>
+                        <th className="py-4 text-xs font-bold text-slate-400 uppercase pr-4">Item Name</th>
+                        <th className="py-4 text-xs font-bold text-slate-400 uppercase pr-4">Category</th>
+                        <th className="py-4 text-xs font-bold text-slate-400 uppercase pr-4">Price</th>
+                        <th className="py-4 text-xs font-bold text-slate-400 uppercase pr-4">Original Price</th>
+                        <th className="py-4 text-xs font-bold text-slate-400 uppercase pr-4">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 dark:divide-slate-850 text-slate-600 dark:text-slate-350">
+                      {filteredProducts.map((p) => {
+                        const pid = p.id || p._id;
+                        return (
+                          <tr key={pid} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30">
+                            <td className="py-4 pr-4">
+                              <img src={p.image} alt="" className="w-10 h-10 object-contain rounded-lg bg-white border p-0.5" />
+                            </td>
+                            <td className="py-4 pr-4 font-bold text-slate-800 dark:text-slate-200 max-w-[200px] truncate">{p.name}</td>
+                            <td className="py-4 pr-4 text-xs font-semibold">{p.category}</td>
+                            <td className="py-4 pr-4 font-bold text-slate-800 dark:text-slate-100">₹{p.price}</td>
+                            <td className="py-4 pr-4 text-slate-400 line-through">₹{p.originalPrice || p.price}</td>
+                            <td className="py-4">
+                              <button 
+                                onClick={() => handleDeleteProduct(pid)}
+                                className="text-red-400 hover:text-red-650 p-2 rounded-xl hover:bg-red-50 dark:hover:bg-red-950/20 cursor-pointer"
+                              >
+                                <FiTrash2 className="w-4.5 h-4.5" />
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
                 </div>
               )}
+            </div>
+          )}
 
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '10px' }}>
+          {/* TAB: ORDER REQUESTS */}
+          {activeTab === 'orders' && (
+            <div className="space-y-6 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-6 rounded-[32px] shadow-sm">
+              <h3 className="font-display font-extrabold text-lg text-slate-850 dark:text-white pb-4 border-b border-slate-100 dark:border-slate-850 text-left">
+                Manage Orders ({filteredOrders.length})
+              </h3>
+
+              {loadingOrders ? (
+                <div className="text-center py-10 text-slate-400">Loading orders...</div>
+              ) : filteredOrders.length === 0 ? (
+                <div className="text-center py-12 text-slate-400">No order logs found.</div>
+              ) : (
+                <div className="space-y-5">
+                  {filteredOrders.map((order) => (
+                    <div key={order._id || order.orderId} className="border border-slate-150 dark:border-slate-800 rounded-3xl p-5 text-left space-y-4 hover:border-slate-200 dark:hover:border-slate-700 transition-colors">
+                      <div className="flex flex-wrap justify-between items-center gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
+                        <div>
+                          <strong className="text-sm font-bold text-slate-800 dark:text-slate-100">Order ID: #{order.orderId}</strong>
+                          <span className="text-xs text-slate-400 block mt-0.5">{order.email}</span>
+                        </div>
+                        {/* Status Select dropdown */}
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-bold text-slate-400">Status:</span>
+                          <select 
+                            value={order.status || 'Pending'}
+                            onChange={(e) => handleUpdateOrderStatus(order.orderId, e.target.value)}
+                            className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-3 py-1.5 rounded-xl text-xs font-bold focus:outline-none"
+                          >
+                            <option value="Pending">Pending</option>
+                            <option value="Processing">Processing</option>
+                            <option value="Out for Delivery">Out for Delivery</option>
+                            <option value="Delivered">Delivered</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      {/* Items */}
+                      <div className="space-y-2">
+                        {order.items.map((item, idx) => (
+                          <div key={idx} className="flex justify-between items-center text-xs text-slate-550 dark:text-slate-450 font-semibold">
+                            <span>{item.name} <span className="text-slate-400 font-medium">x {item.quantity}</span></span>
+                            <span>₹{item.price * item.quantity}</span>
+                          </div>
+                        ))}
+                      </div>
+
+                      <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3 pt-3 border-t border-slate-100 dark:border-slate-800 text-xs">
+                        <div className="text-slate-450 font-semibold max-w-sm truncate">
+                          <strong>Address:</strong> {order.shippingAddress}
+                        </div>
+                        <div className="font-display font-extrabold text-base text-slate-800 dark:text-slate-150 self-end">
+                          Total Amount: ₹{order.totalPrice}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* TAB: CUSTOMERS DIRECTORY */}
+          {activeTab === 'customers' && (
+            <div className="space-y-6 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-6 rounded-[32px] shadow-sm">
+              <h3 className="font-display font-extrabold text-lg text-slate-850 dark:text-white pb-4 border-b border-slate-100 dark:border-slate-850 text-left">
+                Active Platform Users
+              </h3>
+
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="border-b border-slate-100 dark:border-slate-800">
+                      <th className="py-4 text-xs font-bold text-slate-400 uppercase pr-4">User Details</th>
+                      <th className="py-4 text-xs font-bold text-slate-400 uppercase pr-4">Orders Placed</th>
+                      <th className="py-4 text-xs font-bold text-slate-400 uppercase pr-4">Total Spent</th>
+                      <th className="py-4 text-xs font-bold text-slate-400 uppercase pr-4">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 dark:divide-slate-850 text-slate-650 dark:text-slate-350 text-sm">
+                    {mockUsers.map((u) => (
+                      <tr key={u.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30">
+                        <td className="py-4 pr-4">
+                          <div className="font-bold text-slate-800 dark:text-slate-200">{u.name}</div>
+                          <span className="text-xs text-slate-400">{u.email}</span>
+                        </td>
+                        <td className="py-4 pr-4 font-semibold">{u.orders} orders</td>
+                        <td className="py-4 pr-4 font-bold text-slate-800 dark:text-slate-100">₹{u.spent}</td>
+                        <td className="py-4 pr-4">
+                          <span className="text-[10px] font-extrabold bg-emerald-50 dark:bg-emerald-950/20 text-emerald-600 px-2 py-0.5 rounded-full uppercase tracking-wider">
+                            Verified
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* TAB: DELIVERY TRACKING MAP */}
+          {activeTab === 'delivery' && (
+            <div className="space-y-6 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-6 rounded-[32px] shadow-sm text-left">
+              <h3 className="font-display font-extrabold text-lg text-slate-850 dark:text-white pb-2">Active Deliveries Routing</h3>
+              <p className="text-slate-450 text-sm">Real-time GPS tracking and path optimization logs for active deliveries in progress.</p>
+              
+              <div className="aspect-video w-full max-h-96 rounded-2xl overflow-hidden bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center relative">
+                <div className="text-center space-y-2">
+                  <FiTruck className="w-12 h-12 text-primary mx-auto animate-bounce" />
+                  <span className="font-display font-extrabold text-slate-700 dark:text-slate-350 block">GPS Delivery Mapping Active</span>
+                  <span className="text-xs text-slate-450 block">Open tracking page via track order menu to see maps in action.</span>
+                </div>
+              </div>
+            </div>
+          )}
+
+        </main>
+      </div>
+
+      {/* 3. Framer Motion Add Product Modal */}
+      <AnimatePresence>
+        {isAddModalOpen && (
+          <>
+            {/* Backdrop */}
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsAddModalOpen(false)}
+              className="fixed inset-0 bg-slate-900/60 dark:bg-slate-950/80 backdrop-blur-sm z-[9998] cursor-pointer"
+            />
+            {/* Modal Card Box */}
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95, y: 30 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 30 }}
+              className="fixed inset-x-4 top-20 sm:mx-auto max-w-lg w-full bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 shadow-2xl rounded-[32px] p-6 sm:p-8 z-[9999] text-left overflow-y-auto max-h-[85vh]"
+            >
+              <div className="flex justify-between items-center pb-4 border-b border-slate-100 dark:border-slate-850 mb-6">
+                <h2 className="font-display font-extrabold text-xl text-slate-850 dark:text-white">Add New Product</h2>
                 <button 
-                  type="button" 
-                  className="btn-primary" 
-                  style={{ background: 'white', color: 'black', border: '1px solid #ccc' }}
                   onClick={() => setIsAddModalOpen(false)}
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer"
                 >
-                  Cancel
-                </button>
-                <button 
-                  type="submit" 
-                  className="btn-primary"
-                  disabled={submitting}
-                >
-                  {submitting ? "Uploading..." : "Save Product"}
+                  <FiX className="w-5 h-5" />
                 </button>
               </div>
-            </form>
-          </div>
-        </div>
-      )}
+
+              <form onSubmit={handleAddProductSubmit} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 mb-1.5 ml-1">Product Name</label>
+                  <input 
+                    type="text" 
+                    placeholder="Fresh Coriander Leaves"
+                    value={newProductName}
+                    onChange={(e) => setNewProductName(e.target.value)}
+                    required
+                    className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-4 py-3 rounded-2xl text-sm font-semibold focus:outline-none focus:border-primary text-slate-800 dark:text-slate-200"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-500 mb-1.5 ml-1">Category</label>
+                    <select 
+                      value={newProductCategory}
+                      onChange={(e) => setNewProductCategory(e.target.value)}
+                      className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-4 py-3 rounded-2xl text-sm font-semibold focus:outline-none"
+                    >
+                      {['Vegetables', 'Fruits', 'Dairy & Eggs', 'Bakery', 'Beverages', 'Snacks'].map((c) => (
+                        <option key={c} value={c}>{c}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-500 mb-1.5 ml-1">Price (₹)</label>
+                    <input 
+                      type="number" 
+                      placeholder="15"
+                      value={newProductPrice}
+                      onChange={(e) => setNewProductPrice(e.target.value)}
+                      required
+                      className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-4 py-3 rounded-2xl text-sm font-semibold focus:outline-none focus:border-primary text-slate-800 dark:text-slate-200"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-500 mb-1.5 ml-1">Original Price (Optional)</label>
+                    <input 
+                      type="number" 
+                      placeholder="25"
+                      value={newProductOriginalPrice}
+                      onChange={(e) => setNewProductOriginalPrice(e.target.value)}
+                      className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-4 py-3 rounded-2xl text-sm font-semibold focus:outline-none focus:border-primary text-slate-800 dark:text-slate-200"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-500 mb-1.5 ml-1">Badge (Optional)</label>
+                    <input 
+                      type="text" 
+                      placeholder="Hot Offer"
+                      value={newProductBadge}
+                      onChange={(e) => setNewProductBadge(e.target.value)}
+                      className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-4 py-3 rounded-2xl text-sm font-semibold focus:outline-none focus:border-primary text-slate-800 dark:text-slate-200"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 mb-1.5 ml-1">Product Image (Optional)</label>
+                  <input 
+                    type="file" 
+                    onChange={(e) => setNewProductImage(e.target.files[0])}
+                    className="w-full text-xs text-slate-400 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-primary/10 file:text-primary hover:file:bg-primary/20 cursor-pointer"
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="w-full py-4 bg-primary hover:bg-primary-hover text-white rounded-2xl font-bold text-sm shadow-md mt-6 cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50"
+                >
+                  {submitting ? "Uploading Product..." : "Create Product"}
+                </button>
+              </form>
+
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
     </div>
   );
 }

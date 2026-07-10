@@ -26,20 +26,15 @@ export default function DeliveryMap({ driverLocation }) {
   const storeLocation = [19.0760, 72.8777];
   const homeLocation = [19.0810, 72.8830];
   
-  const [routeCoordinates, setRouteCoordinates] = useState([]);
-
-  useEffect(() => {
-    // Simulated route line from store to home
-    setRouteCoordinates([
-      [19.0760, 72.8777],
-      [19.0765, 72.8785],
-      [19.0772, 72.8790],
-      [19.0780, 72.8800],
-      [19.0790, 72.8810],
-      [19.0800, 72.8820],
-      [19.0810, 72.8830]
-    ]);
-  }, []);
+  const routeCoordinates = [
+    [19.0760, 72.8777],
+    [19.0765, 72.8785],
+    [19.0772, 72.8790],
+    [19.0780, 72.8800],
+    [19.0790, 72.8810],
+    [19.0800, 72.8820],
+    [19.0810, 72.8830]
+  ];
 
   return (
     <div className="w-full h-full relative rounded-2xl overflow-hidden shadow-sm border border-slate-200">
