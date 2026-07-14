@@ -1,39 +1,66 @@
 const express = require('express');
 const router = express.Router();
 const mongoose = require('mongoose');
+const fs = require('fs');
+const path = require('path');
 const upload = require('../middleware/upload'); 
 const Product = require('../models/Product');
 
-// Yeh aapka updated Cloudinary Base URL hai
+// Custom mock products persistence file
+const mockFilePath = path.join(__dirname, '../mockProducts.json');
+
+// Helper to load persisted mock products
+const loadMockProducts = () => {
+    try {
+        if (fs.existsSync(mockFilePath)) {
+            const data = fs.readFileSync(mockFilePath, 'utf8');
+            return JSON.parse(data);
+        }
+    } catch (err) {
+        console.error("Error reading mock products file:", err);
+    }
+    return [];
+};
+
+// Helper to save mock products
+const saveMockProducts = (products) => {
+    try {
+        fs.writeFileSync(mockFilePath, JSON.stringify(products, null, 2), 'utf8');
+    } catch (err) {
+        console.error("Error writing mock products file:", err);
+    }
+};
+
+// Updated Cloudinary Base URL
 const CLOUDINARY_BASE = "https://res.cloudinary.com/drscamscp/image/upload/q_auto,f_auto/FreshCart_Products/";
 
-// Mock In-Memory Array for offline mode
-const staticProducts = [
-    { id: 1, name: "Fresh Organic Bananas", category: "Fruits", price: 80, originalPrice: 100, image: CLOUDINARY_BASE + "bananas.png", rating: 4.8, reviews: 120, badge: "Bestseller" },
-    { id: 2, name: "Farm Fresh Tomatoes", category: "Vegetables", price: 45, originalPrice: 60, image: CLOUDINARY_BASE + "tomatoes.png", rating: 4.5, reviews: 85, badge: "Fresh Arrival" },
-    { id: 3, name: "Whole Wheat Bread", category: "Bakery", price: 55, originalPrice: 65, image: CLOUDINARY_BASE + "bread.png", rating: 4.7, reviews: 230, badge: null },
-    { id: 4, name: "Amul Pure Milk (1L)", category: "Dairy & Eggs", price: 66, originalPrice: 66, image: CLOUDINARY_BASE + "milk.png", rating: 4.9, reviews: 500, badge: "High Demand" },
-    { id: 5, name: "Organic Red Apples", category: "Fruits", price: 220, originalPrice: 250, image: CLOUDINARY_BASE + "apples.png", rating: 4.6, reviews: 156, badge: "Offer" },
-    { id: 6, name: "Green Spinach Bunch", category: "Vegetables", price: 25, originalPrice: 35, image: CLOUDINARY_BASE + "spinach.png", rating: 4.3, reviews: 90, badge: null },
-    { id: 7, name: "Free Range Eggs (6 Pcs)", category: "Dairy & Eggs", price: 60, originalPrice: 75, image: CLOUDINARY_BASE + "eggs.png", rating: 4.7, reviews: 310, badge: "Bestseller" },
-    { id: 8, name: "Fresh Coriander Leaves", category: "Vegetables", price: 15, originalPrice: 25, image: CLOUDINARY_BASE + "spinach.png", rating: 4.4, reviews: 45, badge: null },
-    { id: 9, name: "Dairy Milk Chocolate", category: "Snacks", price: 40, originalPrice: 50, image: CLOUDINARY_BASE + "chocolate.png.jpg", rating: 4.7, reviews: 200, badge: "Popular" },
-    { id: 10, name: "Lays Classic Chips", category: "Snacks", price: 20, originalPrice: 25, image: CLOUDINARY_BASE + "lays%20chips.png.jpg", rating: 4.5, reviews: 150, badge: null },
-    { id: 11, name: "Coca Cola (500ml)", category: "Beverages", price: 40, originalPrice: 45, image: CLOUDINARY_BASE + "cococola.png.jpg", rating: 4.6, reviews: 300, badge: "Trending" },
-    { id: 12, name: "Kurkure Masala Munch", category: "Snacks", price: 20, originalPrice: 25, image: CLOUDINARY_BASE + "Kurkure.jpg", rating: 4.4, reviews: 112, badge: "New" },
-    { id: 13, name: "Amul Cool", category: "Beverages", price: 30, originalPrice: 35, image: CLOUDINARY_BASE + "amul%20kool.jpg", rating: 4.5, reviews: 87, badge: null },
-    { id: 14, name: "Lemon Juice", category: "Beverages", price: 20, originalPrice: 25, image: CLOUDINARY_BASE + "lemon%20juice.jpg", rating: 4.3, reviews: 76, badge: "Fresh" },
-    { id: 15, name: "Amul Butter", category: "Dairy & Eggs", price: 25, originalPrice: 30, image: CLOUDINARY_BASE + "amul%20butter.jpg", rating: 4.7, reviews: 64, badge: null },
-    { id: 16, name: "Maggi Noodles", category: "Snacks", price: 15, originalPrice: 20, image: CLOUDINARY_BASE + "Maggi.jpg", rating: 4.6, reviews: 211, badge: "Popular" },
-    { id: 17, name: "Maaza Drink", category: "Beverages", price: 35, originalPrice: 40, image: CLOUDINARY_BASE + "Maaza.jpg", rating: 4.4, reviews: 102, badge: null },
-    { id: 18, name: "Jems Pack", category: "Snacks", price: 90, originalPrice: 100, image: CLOUDINARY_BASE + "Jems.jpg", rating: 4.2, reviews: 80, badge: null },
-    { id: 19, name: "Kinder Joy", category: "Snacks", price: 55, originalPrice: 60, image: CLOUDINARY_BASE + "Kinder%20joy.jpg", rating: 4.6, reviews: 98, badge: "Kids Favorite" },
-    { id: 20, name: "Vanilla Ice Cream Cup", category: "Dairy & Eggs", price: 30, originalPrice: 35, image: CLOUDINARY_BASE + "icecream.jpg", rating: 4.5, reviews: 74, badge: null },
-    { id: 21, name: "Fanta", category: "Beverages", price: 40, originalPrice: 45, image: CLOUDINARY_BASE + "Fanta.jpg", rating: 4.3, reviews: 66, badge: null },
-    { id: 22, name: "Coca Cola Bottle", category: "Beverages", price: 45, originalPrice: 50, image: CLOUDINARY_BASE + "cococola.png.jpg", rating: 4.4, reviews: 91, badge: "Chilled" },
-    { id: 23, name: "Child Beer Malt Drink", category: "Beverages", price: 160, originalPrice: 150, image: CLOUDINARY_BASE + "Child%20Beer.jpg", rating: 4.1, reviews: 38, badge: null },
-    { id: 24, name: "Coca Cola Can Pack", category: "Beverages", price: 120, originalPrice: 140, image: CLOUDINARY_BASE + "Coca%20Cola%20Can%20Mixed%20Tray%20330ml%2024%20Pack.jpg", rating: 4.5, reviews: 57, badge: "Party Pack" },
-    { id: 25, name: "Tiger Biscuit", category: "Snacks", price: 20, originalPrice: 15, image: CLOUDINARY_BASE + "Tiger%20Biscuit.jpg", rating: 4.1, reviews: 34, badge: null }
+// Base static products
+const baseStaticProducts = [
+    { id: 1, name: "Fresh Organic Bananas", category: "Fruits", price: 80, originalPrice: 100, image: CLOUDINARY_BASE + "bananas.png", rating: 4.8, reviews: 120, badge: "Bestseller", stock: 150, status: "Active" },
+    { id: 2, name: "Farm Fresh Tomatoes", category: "Vegetables", price: 45, originalPrice: 60, image: CLOUDINARY_BASE + "tomatoes.png", rating: 4.5, reviews: 85, badge: "Fresh Arrival", stock: 100, status: "Active" },
+    { id: 3, name: "Whole Wheat Bread", category: "Bakery", price: 55, originalPrice: 65, image: CLOUDINARY_BASE + "bread.png", rating: 4.7, reviews: 230, badge: null, stock: 12, status: "Low Stock" },
+    { id: 4, name: "Amul Pure Milk (1L)", category: "Dairy & Eggs", price: 66, originalPrice: 66, image: CLOUDINARY_BASE + "milk.png", rating: 4.9, reviews: 500, badge: "High Demand", stock: 0, status: "Out of Stock" },
+    { id: 5, name: "Organic Red Apples", category: "Fruits", price: 220, originalPrice: 250, image: CLOUDINARY_BASE + "apples.png", rating: 4.6, reviews: 156, badge: "Offer", stock: 80, status: "Active" },
+    { id: 6, name: "Green Spinach Bunch", category: "Vegetables", price: 25, originalPrice: 35, image: CLOUDINARY_BASE + "spinach.png", rating: 4.3, reviews: 90, badge: null, stock: 110, status: "Active" },
+    { id: 7, name: "Free Range Eggs (6 Pcs)", category: "Dairy & Eggs", price: 60, originalPrice: 75, image: CLOUDINARY_BASE + "eggs.png", rating: 4.7, reviews: 310, badge: "Bestseller", stock: 140, status: "Active" },
+    { id: 8, name: "Fresh Coriander Leaves", category: "Vegetables", price: 15, originalPrice: 25, image: CLOUDINARY_BASE + "spinach.png", rating: 4.4, reviews: 45, badge: null, stock: 95, status: "Active" },
+    { id: 9, name: "Dairy Milk Chocolate", category: "Snacks", price: 40, originalPrice: 50, image: CLOUDINARY_BASE + "chocolate.png.jpg", rating: 4.7, reviews: 200, badge: "Popular", stock: 120, status: "Active" },
+    { id: 10, name: "Lays Classic Chips", category: "Snacks", price: 20, originalPrice: 25, image: CLOUDINARY_BASE + "lays%20chips.png.jpg", rating: 4.5, reviews: 150, badge: null, stock: 130, status: "Active" },
+    { id: 11, name: "Coca Cola (500ml)", category: "Beverages", price: 40, originalPrice: 45, image: CLOUDINARY_BASE + "cococola.png.jpg", rating: 4.6, reviews: 300, badge: "Trending", stock: 60, status: "Active" },
+    { id: 12, name: "Kurkure Masala Munch", category: "Snacks", price: 20, originalPrice: 25, image: CLOUDINARY_BASE + "Kurkure.jpg", rating: 4.4, reviews: 112, badge: "New", stock: 85, status: "Active" },
+    { id: 13, name: "Amul Cool", category: "Beverages", price: 30, originalPrice: 35, image: CLOUDINARY_BASE + "amul%20kool.jpg", rating: 4.5, reviews: 87, badge: null, stock: 75, status: "Active" },
+    { id: 14, name: "Lemon Juice", category: "Beverages", price: 20, originalPrice: 25, image: CLOUDINARY_BASE + "lemon%20juice.jpg", rating: 4.3, reviews: 76, badge: "Fresh", stock: 90, status: "Active" },
+    { id: 15, name: "Amul Butter", category: "Dairy & Eggs", price: 25, originalPrice: 30, image: CLOUDINARY_BASE + "amul%20butter.jpg", rating: 4.7, reviews: 64, badge: null, stock: 115, status: "Active" },
+    { id: 16, name: "Maggi Noodles", category: "Snacks", price: 15, originalPrice: 20, image: CLOUDINARY_BASE + "Maggi.jpg", rating: 4.6, reviews: 211, badge: "Popular", stock: 160, status: "Active" },
+    { id: 17, name: "Maaza Drink", category: "Beverages", price: 35, originalPrice: 40, image: CLOUDINARY_BASE + "Maaza.jpg", rating: 4.4, reviews: 102, badge: null, stock: 70, status: "Active" },
+    { id: 18, name: "Jems Pack", category: "Snacks", price: 90, originalPrice: 100, image: CLOUDINARY_BASE + "Jems.jpg", rating: 4.2, reviews: 80, badge: null, stock: 45, status: "Active" },
+    { id: 19, name: "Kinder Joy", category: "Snacks", price: 55, originalPrice: 60, image: CLOUDINARY_BASE + "Kinder%20joy.jpg", rating: 4.6, reviews: 98, badge: "Kids Favorite", stock: 65, status: "Active" },
+    { id: 20, name: "Vanilla Ice Cream Cup", category: "Dairy & Eggs", price: 30, originalPrice: 35, image: CLOUDINARY_BASE + "icecream.jpg", rating: 4.5, reviews: 74, badge: null, stock: 50, status: "Active" },
+    { id: 21, name: "Fanta", category: "Beverages", price: 40, originalPrice: 45, image: CLOUDINARY_BASE + "Fanta.jpg", rating: 4.3, reviews: 66, badge: null, stock: 80, status: "Active" },
+    { id: 22, name: "Coca Cola Bottle", category: "Beverages", price: 45, originalPrice: 50, image: CLOUDINARY_BASE + "cococola.png.jpg", rating: 4.4, reviews: 91, badge: "Chilled", stock: 95, status: "Active" },
+    { id: 23, name: "Child Beer Malt Drink", category: "Beverages", price: 160, originalPrice: 150, image: CLOUDINARY_BASE + "Child%20Beer.jpg", rating: 4.1, reviews: 38, badge: null, stock: 20, status: "Active" },
+    { id: 24, name: "Coca Cola Can Pack", category: "Beverages", price: 120, originalPrice: 140, image: CLOUDINARY_BASE + "Coca%20Cola%20Can%20Mixed%20Tray%20330ml%2024%20Pack.jpg", rating: 4.5, reviews: 57, badge: "Party Pack", stock: 15, status: "Active" },
+    { id: 25, name: "Tiger Biscuit", category: "Snacks", price: 20, originalPrice: 15, image: CLOUDINARY_BASE + "Tiger%20Biscuit.jpg", rating: 4.1, reviews: 34, badge: null, stock: 100, status: "Active" }
 ];
 
 // GET ALL PRODUCTS
@@ -43,26 +70,31 @@ router.get('/', async (req, res) => {
         if (mongoose.connection.readyState === 1) {
             dbProducts = await Product.find().maxTimeMS(2000);
         } else {
-            console.warn("[Backend]: Database is not connected. Serving static fallback products instantly.");
+            console.warn("[Backend]: Database is not connected. Serving static fallback products + custom mocks.");
         }
 
-        res.json([...dbProducts, ...staticProducts]);
+        const customMocks = loadMockProducts();
+        res.json([...dbProducts, ...customMocks, ...baseStaticProducts]);
     } catch (err) {
         console.error("Database fetch failed, serving static products only.");
-        res.json(staticProducts);
+        const customMocks = loadMockProducts();
+        res.json([...customMocks, ...baseStaticProducts]);
     }
 });
 
 // ADD NEW PRODUCT (CLOUDINARY)
 router.post('/add', upload.single('image'), async (req, res) => {
     try {
-        const { name, price, category, originalPrice, badge } = req.body;
+        const { name, price, category, originalPrice, badge, stock, status } = req.body;
         
         const imagePath = req.file ? req.file.path : "https://placehold.co/150x150/png?text=No+Image";
         
         // Mock Mode if DB is disconnected
         if (mongoose.connection.readyState !== 1) {
             console.warn("[Backend]: Database is offline. Running in Mock Mode for Add Product.");
+            const parsedStock = stock ? Number(stock) : 100;
+            const parsedStatus = status || (parsedStock > 0 ? "Active" : "Out of Stock");
+            
             const mockProduct = {
                 _id: "mock-product-" + Date.now(),
                 name,
@@ -71,23 +103,28 @@ router.post('/add', upload.single('image'), async (req, res) => {
                 originalPrice: originalPrice ? Number(originalPrice) : undefined,
                 badge: badge || null,
                 image: imagePath,
-                rating: 0,
-                reviews: 0
+                stock: parsedStock,
+                status: parsedStatus,
+                rating: 4.5,
+                reviews: 12
             };
             
-            // Add to the top of our static products list so it shows up instantly!
-            staticProducts.unshift(mockProduct);
+            // Persist the product to json file
+            const customMocks = loadMockProducts();
+            customMocks.unshift(mockProduct);
+            saveMockProducts(customMocks);
             
             return res.status(201).json(mockProduct);
         }
 
         const newProduct = new Product({
             name,
-            price,
+            price: Number(price),
             category,
             originalPrice: originalPrice ? Number(originalPrice) : undefined,
             badge: badge || null,
-            image: imagePath 
+            image: imagePath,
+            stock: stock ? Number(stock) : 100
         });
         await newProduct.save();
         res.status(201).json(newProduct);
@@ -100,25 +137,40 @@ router.post('/add', upload.single('image'), async (req, res) => {
 // DELETE PRODUCT
 router.delete('/:id', async (req, res) => {
     try {
+        const prodId = req.params.id;
+
         if (mongoose.connection.readyState !== 1) {
-            const index = staticProducts.findIndex(p => p.id == req.params.id || p._id == req.params.id);
-            if (index !== -1) {
-                staticProducts.splice(index, 1);
+            let customMocks = loadMockProducts();
+            const exists = customMocks.some(p => p.id == prodId || p._id == prodId);
+            if (exists) {
+                customMocks = customMocks.filter(p => p.id != prodId && p._id != prodId);
+                saveMockProducts(customMocks);
+                return res.status(200).json({ message: "Mock product deleted successfully!" });
             }
-            return res.status(200).json({ message: "Mock product deleted (Database offline)" });
+            return res.status(200).json({ message: "Static base product removed from screen (Temporary)" });
         }
         
         // Check if ID is numeric (static fallback products)
-        if (!isNaN(req.params.id)) {
-            const index = staticProducts.findIndex(p => p.id == req.params.id);
-            if (index !== -1) {
-                staticProducts.splice(index, 1);
+        if (!isNaN(prodId)) {
+            let customMocks = loadMockProducts();
+            const exists = customMocks.some(p => p.id == prodId || p._id == prodId);
+            if (exists) {
+                customMocks = customMocks.filter(p => p.id != prodId && p._id != prodId);
+                saveMockProducts(customMocks);
             }
             return res.status(200).json({ message: "Static product removed from display (Mock)" });
         }
 
-        const product = await Product.findByIdAndDelete(req.params.id);
+        const product = await Product.findByIdAndDelete(prodId);
         if (!product) {
+            // Also check custom mock products file
+            let customMocks = loadMockProducts();
+            const exists = customMocks.some(p => p.id == prodId || p._id == prodId);
+            if (exists) {
+                customMocks = customMocks.filter(p => p.id != prodId && p._id != prodId);
+                saveMockProducts(customMocks);
+                return res.status(200).json({ message: "Mock product deleted successfully!" });
+            }
             return res.status(404).json({ message: "Product not found!" });
         }
         res.status(200).json({ message: "Product deleted successfully!" });
