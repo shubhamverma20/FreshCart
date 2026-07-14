@@ -1,17 +1,25 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState } from 'react';
 
 const CartContext = createContext();
 
 export const CartProvider = ({ children }) => {
-  const [cart, setCart] = useState(() => {
-    const savedCart = localStorage.getItem('cart');
-    return savedCart ? JSON.parse(savedCart) : [];
-  });
+  // Purely React state (no localStorage)
+  const [cart, setCart] = useState([]);
   const [cartOpen, setCartOpen] = useState(false);
+  
+  // Coupon state managed globally
+  const [discountPercent, setDiscountPercent] = useState(0);
+  const [appliedCoupon, setAppliedCoupon] = useState('');
 
-  useEffect(() => {
-    localStorage.setItem('cart', JSON.stringify(cart));
-  }, [cart]);
+  const applyCoupon = (code, percent) => {
+    setAppliedCoupon(code);
+    setDiscountPercent(percent);
+  };
+
+  const removeCoupon = () => {
+    setAppliedCoupon('');
+    setDiscountPercent(0);
+  };
 
   const addToCart = (product) => {
     setCart((prevCart) => {
@@ -50,6 +58,7 @@ export const CartProvider = ({ children }) => {
 
   const clearCart = () => {
     setCart([]);
+    removeCoupon(); // clear coupons when cart is cleared
   };
 
   const toggleCart = () => {
@@ -70,7 +79,11 @@ export const CartProvider = ({ children }) => {
       clearCart, 
       toggleCart,
       cartTotal, 
-      cartCount 
+      cartCount,
+      discountPercent,
+      appliedCoupon,
+      applyCoupon,
+      removeCoupon
     }}>
       {children}
     </CartContext.Provider>

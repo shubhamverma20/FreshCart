@@ -39,7 +39,7 @@ async function sendEmail({ toEmail, toName, subject, htmlContent }) {
     const payload = {
       subject: subject,
       sender: { name: SENDER_NAME, email: SENDER_EMAIL },
-      to: [{ email: toEmail, name: toName || '' }],
+      to: toName ? [{ email: toEmail, name: toName }] : [{ email: toEmail }],
       htmlContent: htmlContent
     };
     

@@ -58,7 +58,7 @@ router.post('/add', upload.single('image'), async (req, res) => {
     try {
         const { name, price, category, originalPrice, badge } = req.body;
         
-        const imagePath = req.file ? req.file.path : CLOUDINARY_BASE + "default.png";
+        const imagePath = req.file ? req.file.path : "https://placehold.co/150x150/png?text=No+Image";
         
         // Mock Mode if DB is disconnected
         if (mongoose.connection.readyState !== 1) {
@@ -101,11 +101,19 @@ router.post('/add', upload.single('image'), async (req, res) => {
 router.delete('/:id', async (req, res) => {
     try {
         if (mongoose.connection.readyState !== 1) {
+            const index = staticProducts.findIndex(p => p.id == req.params.id || p._id == req.params.id);
+            if (index !== -1) {
+                staticProducts.splice(index, 1);
+            }
             return res.status(200).json({ message: "Mock product deleted (Database offline)" });
         }
         
         // Check if ID is numeric (static fallback products)
         if (!isNaN(req.params.id)) {
+            const index = staticProducts.findIndex(p => p.id == req.params.id);
+            if (index !== -1) {
+                staticProducts.splice(index, 1);
+            }
             return res.status(200).json({ message: "Static product removed from display (Mock)" });
         }
 

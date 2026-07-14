@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
@@ -11,7 +11,8 @@ import {
   FiMapPin, 
   FiGrid, 
   FiMenu, 
-  FiX 
+  FiX,
+  FiHeart
 } from 'react-icons/fi';
 import { motion, AnimatePresence } from 'framer-motion';
 import ThemeToggle from './ThemeToggle';
@@ -25,8 +26,20 @@ export default function Header({ searchVal, onSearchChange }) {
   const navigate = useNavigate();
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [wishlistCount, setWishlistCount] = useState(0);
 
   const isHome = location.pathname === '/' || location.pathname === '/products';
+
+  // Sync wishlist item count
+  useEffect(() => {
+    const loadWishlistCount = () => {
+      const wish = JSON.parse(localStorage.getItem('wishlist') || '[]');
+      setWishlistCount(wish.length);
+    };
+    loadWishlistCount();
+    window.addEventListener('wishlist-update', loadWishlistCount);
+    return () => window.removeEventListener('wishlist-update', loadWishlistCount);
+  }, []);
 
   const handleLogout = () => {
     logout();
@@ -36,31 +49,31 @@ export default function Header({ searchVal, onSearchChange }) {
 
   return (
     <>
-      <header className="sticky top-0 z-40 bg-white/85 dark:bg-slate-900/85 backdrop-blur-md border-b border-slate-100 dark:border-slate-800/80 transition-all duration-300">
+      <header className="sticky top-0 z-40 bg-white/80 dark:bg-slate-950/80 backdrop-blur-md border-b border-slate-200/50 dark:border-slate-800/40 transition-colors duration-300">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-20">
+          <div className="flex justify-between items-center h-18">
             
             {/* Left: Logo & Delivery Pill */}
             <div className="flex items-center gap-6">
               {/* Logo */}
-              <Link to="/" className="flex items-center gap-2.5 group">
+              <Link to="/" className="flex items-center gap-2 group">
                 <motion.div 
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
-                  className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center text-white shadow-md shadow-emerald-500/20 group-hover:bg-primary-hover transition-colors duration-300"
+                  className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center text-white shadow-sm shadow-emerald-500/10 transition-transform duration-300"
                 >
                   <FiShoppingBag className="w-5.5 h-5.5" />
                 </motion.div>
-                <span className="font-display font-extrabold text-2xl tracking-tight text-emerald-600 dark:text-emerald-500 select-none">
+                <span className="font-extrabold text-xl tracking-tight text-slate-900 dark:text-white select-none">
                   FreshCart
                 </span>
               </Link>
 
               {/* Delivery Pill - Hidden on Mobile */}
-              <div className="hidden md:flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-100/60 dark:border-emerald-900/30 text-[11px] font-bold text-primary shadow-sm select-none">
-                <span className="relative flex h-2 w-2">
+              <div className="hidden md:flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-100/50 dark:border-emerald-900/30 text-[10px] font-bold text-primary shadow-sm select-none">
+                <span className="relative flex h-1.5 w-1.5">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                  <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span>
                 </span>
                 <span>Delivery in 12 mins</span>
               </div>
@@ -74,19 +87,19 @@ export default function Header({ searchVal, onSearchChange }) {
                   placeholder="Search fresh vegetables, fruits, snacks..."
                   value={searchVal || ''}
                   onChange={(e) => onSearchChange(e.target.value)}
-                  className="w-full bg-slate-50 dark:bg-slate-800/80 text-slate-800 dark:text-slate-250 pl-11 pr-5 py-3 rounded-full border border-slate-200/70 dark:border-slate-700/50 focus:outline-none focus:ring-2 focus:ring-emerald-500/10 focus:border-primary focus:bg-white dark:focus:bg-slate-850 transition-all text-sm font-medium"
+                  className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 pl-11 pr-5 py-2.5 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-primary focus:bg-white dark:focus:bg-slate-900/80 transition-all text-xs font-semibold text-slate-800 dark:text-slate-200"
                 />
-                <FiSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 w-5 h-5 group-focus-within:text-emerald-500 transition-colors" />
+                <FiSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 w-4 h-4 group-focus-within:text-emerald-500 transition-colors" />
               </div>
             )}
 
             {/* Right: Desktop Actions */}
-            <div className="hidden lg:flex items-center gap-5">
-              <Link to="/delivery" className="flex items-center gap-1.5 text-sm font-semibold text-slate-650 dark:text-slate-350 hover:text-primary dark:hover:text-primary transition-colors">
+            <div className="hidden lg:flex items-center gap-4.5">
+              <Link to="/delivery" className="flex items-center gap-1.5 text-xs font-bold text-slate-550 dark:text-slate-400 hover:text-primary dark:hover:text-primary transition-colors">
                 <FiMapPin className="w-4 h-4 text-slate-400" /> Track Order
               </Link>
 
-              <Link to="/admin" className="flex items-center gap-1.5 text-sm font-semibold text-slate-650 dark:text-slate-350 hover:text-primary dark:hover:text-primary transition-colors">
+              <Link to="/admin" className="flex items-center gap-1.5 text-xs font-bold text-slate-550 dark:text-slate-400 hover:text-primary dark:hover:text-primary transition-colors">
                 <FiGrid className="w-4 h-4 text-slate-400" /> Admin
               </Link>
 
@@ -97,18 +110,39 @@ export default function Header({ searchVal, onSearchChange }) {
 
               <div className="h-4 w-[1px] bg-slate-200 dark:bg-slate-800" />
 
+              {/* Wishlist Icon */}
+              <Link 
+                to="/dashboard/wishlist" 
+                className="relative p-2 rounded-xl bg-slate-50 dark:bg-slate-900 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-red-500 transition-colors cursor-pointer"
+              >
+                <FiHeart className="w-4.5 h-4.5" />
+                <AnimatePresence>
+                  {wishlistCount > 0 && (
+                    <motion.span 
+                      key={wishlistCount}
+                      initial={{ scale: 0.6, opacity: 0 }}
+                      animate={{ scale: 1.2, opacity: 1 }}
+                      exit={{ scale: 0.6, opacity: 0 }}
+                      className="absolute -top-1 -right-1 bg-red-550 text-white font-bold text-[9px] w-4.5 h-4.5 rounded-full flex items-center justify-center ring-2 ring-white dark:ring-slate-905 shadow-sm"
+                    >
+                      {wishlistCount}
+                    </motion.span>
+                  )}
+                </AnimatePresence>
+              </Link>
+
               {user ? (
-                <div className="flex items-center gap-4">
-                  <Link to="/dashboard" className="flex items-center gap-1.5 text-sm font-semibold text-slate-800 dark:text-slate-205 hover:text-primary transition-colors">
+                <div className="flex items-center gap-3">
+                  <Link to="/dashboard" className="flex items-center gap-1.5 text-xs font-bold text-slate-800 dark:text-slate-200 hover:text-primary transition-colors">
                     <FiUser className="w-4 h-4 text-slate-400" /> Hi, {user.name ? user.name.split(' ')[0] : 'User'}
                   </Link>
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={handleLogout}
-                    className="text-red-500 border-red-200/80 hover:bg-red-50 dark:hover:bg-red-950/20 dark:border-red-950/50"
+                    className="text-red-500 border-red-100 hover:bg-red-50 dark:hover:bg-red-950/20 dark:border-red-950/30 text-xs py-1.5"
                   >
-                    <FiLogOut className="w-4 h-4 mr-1.5" /> Log Out
+                    <FiLogOut className="w-3.5 h-3.5 mr-1" /> Log Out
                   </Button>
                 </div>
               ) : (
@@ -117,6 +151,7 @@ export default function Header({ searchVal, onSearchChange }) {
                     variant="ghost" 
                     size="sm" 
                     onClick={() => navigate('/login')}
+                    className="text-xs"
                   >
                     Log In
                   </Button>
@@ -124,6 +159,7 @@ export default function Header({ searchVal, onSearchChange }) {
                     variant="primary" 
                     size="sm" 
                     onClick={() => navigate('/login?mode=signup')}
+                    className="text-xs"
                   >
                     Sign Up
                   </Button>
@@ -135,9 +171,9 @@ export default function Header({ searchVal, onSearchChange }) {
                 onClick={toggleCart} 
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                className="relative p-2.5 rounded-full bg-emerald-50 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100/80 dark:hover:bg-emerald-950/40 transition-colors cursor-pointer focus:outline-none"
+                className="relative p-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100/60 dark:hover:bg-emerald-950/40 transition-colors cursor-pointer focus:outline-none"
               >
-                <FiShoppingBag className="w-5 h-5" />
+                <FiShoppingBag className="w-4.5 h-4.5" />
                 <AnimatePresence>
                   {cartCount > 0 && (
                     <motion.span 
@@ -145,7 +181,7 @@ export default function Header({ searchVal, onSearchChange }) {
                       initial={{ scale: 0.6, opacity: 0 }}
                       animate={{ scale: 1.2, opacity: 1 }}
                       exit={{ scale: 0.6, opacity: 0 }}
-                      className="absolute -top-1.5 -right-1.5 bg-accent text-white font-bold text-[10px] w-5 h-5 rounded-full flex items-center justify-center ring-2 ring-white dark:ring-slate-900 shadow-sm"
+                      className="absolute -top-1 -right-1 bg-accent text-white font-bold text-[9px] w-4.5 h-4.5 rounded-full flex items-center justify-center ring-2 ring-white dark:ring-slate-950 shadow-sm"
                     >
                       {cartCount}
                     </motion.span>
@@ -155,15 +191,15 @@ export default function Header({ searchVal, onSearchChange }) {
             </div>
 
             {/* Mobile Actions (Cart + Menu Trigger) */}
-            <div className="flex lg:hidden items-center gap-3.5">
+            <div className="flex lg:hidden items-center gap-3">
               {/* Cart always visible */}
               <motion.button 
                 onClick={toggleCart} 
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                className="relative p-2.5 rounded-full bg-emerald-50 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100/80 dark:hover:bg-emerald-950/40 transition-colors cursor-pointer focus:outline-none"
+                className="relative p-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100/60 dark:hover:bg-emerald-950/40 transition-colors cursor-pointer focus:outline-none"
               >
-                <FiShoppingBag className="w-5.5 h-5.5" />
+                <FiShoppingBag className="w-5 h-5" />
                 <AnimatePresence>
                   {cartCount > 0 && (
                     <motion.span 
@@ -171,7 +207,7 @@ export default function Header({ searchVal, onSearchChange }) {
                       initial={{ scale: 0.6, opacity: 0 }}
                       animate={{ scale: 1.2, opacity: 1 }}
                       exit={{ scale: 0.6, opacity: 0 }}
-                      className="absolute -top-1.5 -right-1.5 bg-accent text-white font-bold text-[10px] w-5 h-5 rounded-full flex items-center justify-center ring-2 ring-white dark:ring-slate-900"
+                      className="absolute -top-1 -right-1 bg-accent text-white font-bold text-[9px] w-4.5 h-4.5 rounded-full flex items-center justify-center ring-2 ring-white dark:ring-slate-900"
                     >
                       {cartCount}
                     </motion.span>
@@ -183,10 +219,10 @@ export default function Header({ searchVal, onSearchChange }) {
               <motion.button
                 onClick={() => setMobileMenuOpen(true)}
                 whileTap={{ scale: 0.92 }}
-                className="p-2 text-slate-655 dark:text-slate-350 focus:outline-none cursor-pointer"
+                className="p-2 text-slate-600 dark:text-slate-400 focus:outline-none cursor-pointer"
                 aria-label="Open menu"
               >
-                <FiMenu className="w-6.5 h-6.5" />
+                <FiMenu className="w-6 h-6" />
               </motion.button>
             </div>
 
@@ -213,7 +249,7 @@ export default function Header({ searchVal, onSearchChange }) {
               animate={{ x: 0 }}
               exit={{ x: '100%' }}
               transition={{ type: 'spring', damping: 26, stiffness: 220 }}
-              className="fixed top-0 right-0 h-full w-80 max-w-[85vw] bg-white dark:bg-slate-900 shadow-soft-xl border-l border-slate-100 dark:border-slate-800 p-6 flex flex-col z-50 text-left"
+              className="fixed top-0 right-0 h-full w-80 max-w-[85vw] bg-white dark:bg-slate-900 shadow-soft-lg border-l border-slate-100 dark:border-slate-800 p-6 flex flex-col z-50 text-left"
             >
               {/* Drawer Header */}
               <div className="flex items-center justify-between pb-6 border-b border-slate-100 dark:border-slate-800">
@@ -235,7 +271,7 @@ export default function Header({ searchVal, onSearchChange }) {
                 
                 {/* Navigation Links */}
                 <div className="space-y-4">
-                  {/* Mobile Search - Visible only on mobile listing page */}
+                  {/* Mobile Search */}
                   {isHome && (
                     <div className="relative group w-full mb-6">
                       <input
@@ -243,17 +279,17 @@ export default function Header({ searchVal, onSearchChange }) {
                         placeholder="Search items..."
                         value={searchVal || ''}
                         onChange={(e) => onSearchChange(e.target.value)}
-                        className="w-full bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-200 pl-11 pr-5 py-3 rounded-xl border border-slate-250/70 dark:border-slate-700/50 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-primary text-sm font-medium"
+                        className="w-full bg-slate-50 dark:bg-slate-850 border border-slate-200 dark:border-slate-850 text-slate-800 dark:text-slate-250 pl-11 pr-5 py-2.5 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-primary text-xs font-semibold"
                       />
-                      <FiSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 w-5 h-5" />
+                      <FiSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 w-4 h-4" />
                     </div>
                   )}
 
                   {/* Delivery Info Pill inside Mobile Menu */}
                   <div className="flex md:hidden items-center gap-2 px-3 py-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-100/50 dark:border-emerald-900/30 text-xs font-bold text-primary shadow-sm mb-4">
-                    <span className="relative flex h-2 w-2">
+                    <span className="relative flex h-1.5 w-1.5">
                       <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                      <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                      <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span>
                     </span>
                     <span>Guaranteed delivery in 12 mins!</span>
                   </div>
@@ -261,17 +297,25 @@ export default function Header({ searchVal, onSearchChange }) {
                   <Link 
                     to="/delivery" 
                     onClick={() => setMobileMenuOpen(false)}
-                    className="flex items-center gap-3 py-2.5 px-3 rounded-xl text-base font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50 hover:text-primary transition-colors"
+                    className="flex items-center gap-3 py-2.5 px-3 rounded-xl text-sm font-bold text-slate-700 dark:text-slate-350 hover:bg-slate-50 dark:hover:bg-slate-800/50 hover:text-primary transition-colors"
                   >
-                    <FiMapPin className="w-5 h-5 text-slate-400" /> Track Order
+                    <FiMapPin className="w-5 h-5 text-slate-450" /> Track Order
                   </Link>
 
                   <Link 
                     to="/admin" 
                     onClick={() => setMobileMenuOpen(false)}
-                    className="flex items-center gap-3 py-2.5 px-3 rounded-xl text-base font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50 hover:text-primary transition-colors"
+                    className="flex items-center gap-3 py-2.5 px-3 rounded-xl text-sm font-bold text-slate-700 dark:text-slate-355 hover:bg-slate-50 dark:hover:bg-slate-800/50 hover:text-primary transition-colors"
                   >
-                    <FiGrid className="w-5 h-5 text-slate-400" /> Admin Panel
+                    <FiGrid className="w-5 h-5 text-slate-455" /> Admin Panel
+                  </Link>
+
+                  <Link 
+                    to="/dashboard/wishlist" 
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="flex items-center gap-3 py-2.5 px-3 rounded-xl text-sm font-bold text-slate-700 dark:text-slate-355 hover:bg-slate-50 dark:hover:bg-slate-800/50 hover:text-primary transition-colors animate-none"
+                  >
+                    <FiHeart className="w-5 h-5 text-slate-455" /> My Wishlist ({wishlistCount})
                   </Link>
                 </div>
 
@@ -279,7 +323,7 @@ export default function Header({ searchVal, onSearchChange }) {
                 <div className="space-y-6 pt-6 border-t border-slate-100 dark:border-slate-800">
                   {/* Theme Toggle */}
                   <div className="flex items-center justify-between px-3">
-                    <span className="text-sm font-semibold text-slate-500 dark:text-slate-400">Appearance</span>
+                    <span className="text-xs font-bold text-slate-500 dark:text-slate-450">Appearance</span>
                     <ThemeToggle />
                   </div>
 
@@ -288,7 +332,7 @@ export default function Header({ searchVal, onSearchChange }) {
                       <Link 
                         to="/dashboard" 
                         onClick={() => setMobileMenuOpen(false)}
-                        className="flex items-center gap-3 py-2 text-base font-bold text-slate-800 dark:text-slate-200 hover:text-primary transition-colors"
+                        className="flex items-center gap-3 py-2 text-sm font-bold text-slate-800 dark:text-slate-200 hover:text-primary transition-colors"
                       >
                         <FiUser className="w-5 h-5 text-slate-400" /> My Account ({user.name})
                       </Link>

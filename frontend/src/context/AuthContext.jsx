@@ -77,8 +77,24 @@ export const AuthProvider = ({ children }) => {
     setLoading(true);
     setError(null);
     try {
-      const result = await signInWithPopup(auth, googleProvider);
-      const firebaseUser = result.user;
+      let firebaseUser;
+      
+      // Simulate Google Login if Firebase API Key is not present
+      if (!import.meta.env.VITE_FIREBASE_API_KEY || import.meta.env.VITE_FIREBASE_API_KEY === 'your_api_key_here') {
+        console.warn("[AuthContext] Firebase API key missing. Simulating Google Login...");
+        // Wait 1 second to simulate network request
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        firebaseUser = {
+          displayName: "Google Demo User",
+          email: "googleuser@demo.com",
+          photoURL: "https://placehold.co/100x100?text=G",
+          uid: "simulated_google_uid_" + Date.now()
+        };
+      } else {
+        const result = await signInWithPopup(auth, googleProvider);
+        firebaseUser = result.user;
+      }
+
       const backendData = await syncFirebaseUser(firebaseUser, 'google');
 
       const userData = backendData?.user || {

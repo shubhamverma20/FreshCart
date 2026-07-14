@@ -1,12 +1,12 @@
-@import url('https://fonts.googleapis.com/css2?family=Baloo+2:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600;700;850&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
 @import "tailwindcss";
 
 @theme {
   /* Fonts */
-  --font-heading: 'Baloo 2', sans-serif;
+  --font-heading: 'Inter', sans-serif;
   --font-body: 'Inter', sans-serif;
   --font-sans: 'Inter', sans-serif;
-  --font-display: 'Baloo 2', sans-serif;
+  --font-display: 'Inter', sans-serif;
 
   /* Primary green (#16A34A) ramp */
   --color-primary-50: #f0fdf4;
@@ -19,8 +19,8 @@
   --color-primary-700: #15803d;
   --color-primary-800: #166534;
   --color-primary-900: #14532d;
-  --color-primary: #16a34a;
-  --color-primary-hover: #15803d;
+  --color-primary: #22c55e;
+  --color-primary-hover: #16a34a;
 
   /* Orange accent (#F97316) ramp */
   --color-accent-50: #fff7ed;
@@ -59,35 +59,39 @@
 
 /* Custom Base Utilities */
 :root {
-  --primary-color: #16a34a;
-  --primary-hover: #15803d;
-  --secondary-color: #f59e0b;
-  --bg-color: #f8fafc;
-  --surface-color: #ffffff;
-  --text-primary: #0f172a;
-  --text-secondary: #64748b;
-  --border-color: #e2e8f0;
-  --max-width: 1200px;
-  --border-radius: 20px;
+  --primary-color: #22C55E;
+  --primary-hover: #16A34A;
+  --secondary-color: #16A34A;
+  --bg-color: #F8FAFC;
+  --surface-color: #FFFFFF;
+  --text-primary: #111827;
+  --text-secondary: #64748B;
+  --border-color: #E2E8F0;
+  --success-color: #10B981;
+  --error-color: #EF4444;
+  --warning-color: #F59E0B;
   
-  --shadow-sm: 0 1px 3px rgba(0,0,0,0.05);
-  --shadow-md: 0 4px 20px -2px rgba(0,0,0,0.04), 0 2px 8px -1px rgba(0,0,0,0.02);
-  --shadow-lg: 0 20px 40px -15px rgba(0,0,0,0.06), 0 8px 20px -8px rgba(0,0,0,0.04);
+  --max-width: 1200px;
+  --border-radius: 16px;
+  
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.02);
+  --shadow-md: 0 4px 12px -1px rgba(0, 0, 0, 0.03), 0 2px 6px -1px rgba(0, 0, 0, 0.02);
+  --shadow-lg: 0 10px 25px -3px rgba(0, 0, 0, 0.04), 0 4px 12px -2px rgba(0, 0, 0, 0.02);
   --glass-bg: rgba(255, 255, 255, 0.75);
-  --glass-border: rgba(255, 255, 255, 0.5);
+  --glass-border: rgba(226, 232, 240, 0.5);
 }
 
 .dark {
-  --bg-color: #0b0f19;
-  --surface-color: #121826;
-  --text-primary: #f8fafc;
-  --text-secondary: #94a3b8;
-  --border-color: #1e293b;
-  --glass-bg: rgba(18, 24, 38, 0.75);
-  --glass-border: rgba(30, 41, 59, 0.5);
-  --shadow-sm: 0 1px 3px rgba(0,0,0,0.2);
-  --shadow-md: 0 4px 20px -2px rgba(0,0,0,0.3);
-  --shadow-lg: 0 20px 40px -15px rgba(0,0,0,0.4);
+  --bg-color: #0F172A;
+  --surface-color: #1E293B;
+  --text-primary: #F8FAFC;
+  --text-secondary: #94A3B8;
+  --border-color: #334155;
+  --glass-bg: rgba(30, 41, 59, 0.75);
+  --glass-border: rgba(51, 65, 85, 0.5);
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.2);
+  --shadow-md: 0 4px 12px -1px rgba(0, 0, 0, 0.25);
+  --shadow-lg: 0 10px 25px -3px rgba(0, 0, 0, 0.3);
 }
 
 * {
@@ -103,20 +107,12 @@ body {
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   transition: background-color 0.3s ease, color 0.3s ease;
-  background-image: 
-    radial-gradient(circle at top right, rgba(22, 163, 74, 0.04), transparent 40%),
-    radial-gradient(circle at bottom left, rgba(245, 158, 11, 0.04), transparent 35%);
-}
-
-.dark body {
-  background-image: 
-    radial-gradient(circle at top right, rgba(22, 163, 74, 0.07), transparent 40%),
-    radial-gradient(circle at bottom left, rgba(245, 158, 11, 0.03), transparent 35%);
 }
 
 h1, h2, h3, h4, h5, h6 {
-  font-family: 'Baloo 2', sans-serif;
+  font-family: 'Inter', sans-serif;
   font-weight: 700;
+  letter-spacing: -0.02em;
   color: var(--text-primary);
 }
 

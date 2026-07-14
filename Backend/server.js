@@ -10,6 +10,7 @@ dotenv.config();
 const authRoutes = require('./routes/auth');
 const productRoutes = require('./routes/products');
 const orderRoutes = require('./routes/orders');
+const stripeRoutes = require('./routes/stripe');
 
 const app = express();
 const server = http.createServer(app);
@@ -109,6 +110,7 @@ app.use('/api/webhook', webhookRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/orders', orderRoutes);
+app.use('/api/stripe', stripeRoutes);
 
 // Health Check
 app.get('/api/health', (req, res) => {

@@ -144,7 +144,9 @@ exports.requestOTP = async (req, res) => {
     user.otpExpires = otpExpires;
     user.otpAttempts = 0;
     await user.save();
-    console.log(`[Auth Controller] Stored verification code in DB for: ${email}`);
+    console.log(`\n=========================================`);
+    console.log(`[Auth Controller] DEV OTP for ${email}: ${otp}`);
+    console.log(`=========================================\n`);
 
     // Trigger OTP Email
     console.log(`[Auth Controller] Dispatching OTP Email to ${email}`);
@@ -154,7 +156,7 @@ exports.requestOTP = async (req, res) => {
       return res.status(500).json({ message: 'Failed to send verification email' });
     }
 
-    res.status(200).json({ message: 'Verification code sent to your email' });
+    res.status(200).json({ message: 'Verification code sent to your email', devOtp: otp });
   } catch (err) {
     console.error("[Auth Controller] Request OTP error:", err);
     res.status(500).json({ message: 'Something went wrong' });
@@ -315,12 +317,16 @@ exports.requestPasswordReset = async (req, res) => {
     user.otpAttempts = 0;
     await user.save();
 
+    console.log(`\n=========================================`);
+    console.log(`[Auth Controller] DEV PASSWORD RESET OTP for ${email}: ${otp}`);
+    console.log(`=========================================\n`);
+
     console.log(`[Auth Controller] Sending password reset OTP to ${email}`);
     sendPasswordResetEmail(email, otp).catch(err => 
       console.error("[Auth Controller] Background email error:", err.message)
     );
 
-    res.status(200).json({ message: 'If an account exists, an OTP will be sent' });
+    res.status(200).json({ message: 'If an account exists, an OTP will be sent', devOtp: otp });
   } catch (err) {
     console.error("[Auth Controller] Request reset error:", err);
     res.status(500).json({ message: 'Failed to process request' });
